@@ -16,6 +16,7 @@
       <a href="{{ '/' | relative_url }}"{% if page.url == '/' %} class="on"{% endif %}>首页</a>
       {% for s in site.sections %}<a href="{{ s.url | relative_url }}"{% if page.section == s.key or page.list_section == s.key %} class="on"{% endif %}>{{ s.name }}</a>{% endfor %}
       <a href="{{ '/about/' | relative_url }}"{% if page.url == '/about/' %} class="on"{% endif %}>关于协会</a>
+      <a class="nav-pub{% if page.url == '/publish/' %} on{% endif %}" href="{{ '/publish/' | relative_url }}">✍️ 投稿</a>
     </nav>
   </div>
 </header>

@@ -31,6 +31,8 @@ img, video { max-width: 100%; display: block; }
 .nav a { padding: 8px 12px; border-radius: 10px; color: var(--ink-2); white-space: nowrap; font-size: 15px; }
 .nav a:hover { background: var(--accent-soft); }
 .nav a.on { color: var(--accent); font-weight: 600; background: var(--accent-soft); }
+.nav a.nav-pub { margin-left: 6px; color: #fff; background: var(--accent); font-weight: 600; }
+.nav a.nav-pub:hover, .nav a.nav-pub.on { background: #174bb0; color: #fff; }
 @media (max-width: 720px) {
   .brand-full { display: none; } .brand-short { display: inline; }
   .top-in { padding: 6px 0; }
