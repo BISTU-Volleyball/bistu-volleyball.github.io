@@ -13,8 +13,9 @@ export const ghClient = cfg => async (path, opts = {}) => {
   const t0 = Date.now();
   let res;
   try {
+    // no-store：浏览器默认会缓存 GitHub 的 GET 结果约 60 秒，拿到旧版本号会导致提交失败
     res = await fetch(`https://api.github.com/repos/${cfg.repo}${path}`, {
-      ...opts,
+      cache: 'no-store', ...opts,
       headers: { Authorization: 'Bearer ' + cfg.token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', ...(opts.body ? { 'Content-Type': 'application/json' } : {}) },
     });
   } catch (e) { throw new Error('连不上 GitHub，请检查网络'); }

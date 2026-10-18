@@ -1,7 +1,9 @@
 // 发布助手：投稿 → 待审核（_pending/）→ 管理员通过后移到 _posts/ 上线
 // 钥匙 = GitHub 细粒度令牌，只存在本浏览器。只带 Contents 权限的是发布人钥匙；
 // 额外带 Pages 权限的是管理员钥匙（能审核、管理已发布内容、重新构建网站）
-import { ghClient, commitFiles, speedTest, shrinkImage } from './gh.js';
+// 子模块带上与 app.js 相同的版本号，网站更新后不会用到浏览器里缓存的旧版本
+const VER = new URL(import.meta.url).search;
+const { ghClient, commitFiles, speedTest, shrinkImage } = await import('./gh.js' + VER);
 
 const root = document.getElementById('pub');
 const REPO = root.dataset.repo;
@@ -27,7 +29,7 @@ const draft = { photos: [], videos: [] }; // 待提交的 File
 }
 
 const cfg = () => ({ repo: REPO, token: me.key, branch: 'main' });
-const gh = (path, opts = {}) => ghClient(cfg())(path, { cache: 'no-store', ...opts });
+const gh = (path, opts) => ghClient(cfg())(path, opts);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const url = p => p ? BASE + String(p).replace(/^\//, '') : '';
 const today = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
@@ -198,7 +200,7 @@ async function submit() {
     if (draft.videos.length) {
       step('加载视频压缩组件…');
       let media;
-      try { media = await import('./media.js'); } catch { throw new Error('视频压缩组件加载失败，请刷新页面重试'); }
+      try { media = await import('./media.js' + VER); } catch { throw new Error('视频压缩组件加载失败，请刷新页面重试'); }
       for (const [i, f] of draft.videos.entries()) {
         const tag = `视频 ${i + 1}/${draft.videos.length}`;
         let blob;
