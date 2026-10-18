@@ -5,8 +5,12 @@ layout: default
 {% if site.notice %}<a class="notice" href="{{ site.notice.url }}">📣 {{ site.notice.text }} <span>›</span></a>{% endif %}
 <section class="intro">
   <h2>关于我们</h2>
-  <p>{{ site.title }}（简介待补充：成立时间、成员规模、日常活动等）。</p>
+  <p>{{ site.intro }}</p>
   <a class="more" href="{{ '/about/' | relative_url }}">了解协会 ›</a>
+</section>
+<section class="block">
+  <div class="block-head"><h2>精彩瞬间</h2><a class="more" href="{{ '/about/' | relative_url }}">更多 ›</a></div>
+  <div class="strip">{% for i in (1..4) %}<a href="{{ '/about/' | relative_url }}"><img loading="lazy" src="{{ '/assets/about/a6_' | append: i | append: '.jpg' | relative_url }}" alt=""></a>{% endfor %}</div>
 </section>
 {% for s in site.sections %}{% assign posts = site.posts | where: "section", s.key %}{% if posts.size > 0 %}
 <section class="block">
@@ -14,4 +18,3 @@ layout: default
   <div class="grid">{% for p in posts limit: 3 %}{% include card.html post=p %}{% endfor %}</div>
 </section>
 {% endif %}{% endfor %}
-{% if site.posts.size == 0 %}<p class="empty">网站刚刚建好，内容陆续更新中。</p>{% endif %}

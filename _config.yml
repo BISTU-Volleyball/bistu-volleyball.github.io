@@ -1,7 +1,9 @@
 # 网站基本信息（改这里即可，全站自动生效）
-title: 北京信息科技大学气排球协会
-short_title: 北信科气排球
-description: 北京信息科技大学气排球协会官方网站：新闻动态、赛事回顾、风采相册
+title: 北京信息科技大学教职工排球协会
+short_title: 北信科教职工排协
+description: 北京信息科技大学教职工排球协会网站：新闻动态、赛事回顾、风采相册
+# 首页「关于我们」一段话
+intro: 排球协会是由学校一群热爱排球的教职工自愿组成的非营利性、群众性体育文化团体，隶属于北京信息科技大学工会委员会，致力于丰富教职工业余文化生活、推广排球运动、弘扬团队精神。协会成立于2025年6月3日，目前会员已达197名。
 lang: zh-CN
 timezone: Asia/Shanghai
 repo: BISTU-Volleyball/bistu-volleyball.github.io

@@ -1,4 +1,4 @@
-# 北京信息科技大学气排球协会网站
+# 北京信息科技大学教职工排球协会网站
 
 网址：https://bistu-volleyball.github.io/
 
