@@ -102,6 +102,7 @@ img, video { max-width: 100%; display: block; }
 .att a { display: block; width: 96px; height: 128px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
 .att img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
 .join { background: var(--accent); color: #fff; border-radius: 12px; padding: 16px 18px; line-height: 1.8; font-weight: 600; }
+.contact { margin: 12px 0 0; font-size: 16px; color: #262b40; }
 @media (max-width: 720px) { .stats { grid-template-columns: repeat(2, 1fr); } }
 
 /* 首页照片条 */
