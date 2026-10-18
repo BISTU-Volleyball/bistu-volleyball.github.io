@@ -1,0 +1,16 @@
+---
+layout: default
+---
+{% assign sec = site.sections | where: "key", page.section | first %}
+<article class="post">
+  <div class="crumb">{% if sec %}<a href="{{ sec.url | relative_url }}">{{ sec.name }}</a> ›{% endif %}</div>
+  <h1>{{ page.title }}</h1>
+  <div class="meta">{{ page.date | date: '%Y年%-m月%-d日' }}{% if page.author %} · {{ page.author }}{% endif %}</div>
+  <div class="post-body">{{ content }}</div>
+  {% if page.videos and page.videos.size > 0 %}
+  <div class="videos">{% for v in page.videos %}
+    <figure><video controls playsinline preload="none" src="{{ v.src | relative_url }}"{% if v.poster %} poster="{{ v.poster | relative_url }}"{% endif %}></video>{% if v.caption %}<figcaption>{{ v.caption }}</figcaption>{% endif %}</figure>
+  {% endfor %}</div>{% endif %}
+  {% if page.images and page.images.size > 0 %}
+  <div class="photos">{% for im in page.images %}<a href="{{ im | relative_url }}" target="_blank"><img loading="lazy" src="{{ im | relative_url }}" alt=""></a>{% endfor %}</div>{% endif %}
+</article>

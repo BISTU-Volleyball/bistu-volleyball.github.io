@@ -1,0 +1,4 @@
+{% assign posts = site.posts | where: "section", include.section %}
+<h1 class="page-title">{{ include.name }}</h1>
+{% if posts.size == 0 %}<p class="empty">还没有内容，敬请期待。</p>{% else %}
+<div class="grid">{% for p in posts %}{% include card.html post=p %}{% endfor %}</div>{% endif %}

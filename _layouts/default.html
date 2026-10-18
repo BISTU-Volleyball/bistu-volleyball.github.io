@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="{{ site.lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% if page.title %}{{ page.title }} · {% endif %}{{ site.title }}</title>
+<meta name="description" content="{{ page.summary | default: site.description | strip_html | truncate: 120 }}">
+{% if page.noindex %}<meta name="robots" content="noindex">{% endif %}
+<link rel="stylesheet" href="{{ '/assets/style.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-in">
+    <a class="brand" href="{{ '/' | relative_url }}"><span class="ball">🏐</span><span class="brand-full">{{ site.title }}</span><span class="brand-short">{{ site.short_title }}</span></a>
+    <nav class="nav">
+      <a href="{{ '/' | relative_url }}"{% if page.url == '/' %} class="on"{% endif %}>首页</a>
+      {% for s in site.sections %}<a href="{{ s.url | relative_url }}"{% if page.section == s.key or page.list_section == s.key %} class="on"{% endif %}>{{ s.name }}</a>{% endfor %}
+      <a href="{{ '/about/' | relative_url }}"{% if page.url == '/about/' %} class="on"{% endif %}>关于协会</a>
+    </nav>
+  </div>
+</header>
+<main class="wrap">
+{{ content }}
+</main>
+<footer class="foot">
+  <div class="wrap">© {{ site.time | date: '%Y' }} {{ site.title }} · <a href="{{ '/publish/' | relative_url }}">投稿</a></div>
+</footer>
+</body>
+</html>

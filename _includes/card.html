@@ -1,0 +1,9 @@
+{% assign p = include.post %}{% assign sec = site.sections | where: "key", p.section | first %}
+<a class="card" href="{{ p.url | relative_url }}">
+  <div class="card-img">{% if p.cover %}<img loading="lazy" src="{{ p.cover | relative_url }}" alt="">{% else %}<div class="card-ph">🏐</div>{% endif %}{% if p.videos and p.videos.size > 0 %}<span class="badge">▶ 视频</span>{% endif %}</div>
+  <div class="card-body">
+    <div class="meta">{% if sec %}<span class="tag">{{ sec.name }}</span>{% endif %}{{ p.date | date: '%Y-%m-%d' }}</div>
+    <h3>{{ p.title }}</h3>
+    {% if p.summary %}<p>{{ p.summary | truncate: 60 }}</p>{% endif %}
+  </div>
+</a>
