@@ -1,6 +1,6 @@
 // 发布助手：投稿 → 待审核（_pending/）→ 管理员通过后移到 _posts/ 上线
 // 钥匙 = GitHub 细粒度令牌，只存在本浏览器。只带 Contents 权限的是发布人钥匙；
-// 额外带 Pages 权限的是管理员钥匙（能审核、管理已发布内容、重新构建网站）
+// 额外带 Pages 写权限的是管理员钥匙（能审核、管理已发布内容、重新构建网站）
 // 子模块带上与 app.js 相同的版本号，网站更新后不会用到浏览器里缓存的旧版本
 const VER = new URL(import.meta.url).search;
 const { ghClient, commitFiles, speedTest, shrinkImage } = await import('./gh.js' + VER);
@@ -132,7 +132,10 @@ function renderSetup(err, name = me?.name || '') {
 async function verify() {
   try { await gh(''); }
   catch (e) { const name = me.name; me = null; renderSetup(explain(e), name); return false; }
-  try { await gh('/pages'); isAdmin = true; } catch { isAdmin = false; }
+  // 读取类接口不能用来判断：细粒度钥匙对公开仓库自带只读权限，发布人钥匙也能读到 Pages 信息。
+  // 改为发一个故意写错参数的 Pages 修改请求：有 Pages 写权限 → GitHub 回 422（参数错误，什么都不会改）；没有 → 403
+  try { await gh('/pages', { method: 'PUT', body: JSON.stringify({ build_type: '__probe_invalid__' }) }); isAdmin = false; }
+  catch (e) { isAdmin = e.status === 422; }
   return true;
 }
 
