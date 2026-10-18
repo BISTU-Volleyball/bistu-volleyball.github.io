@@ -14,6 +14,7 @@ const MAX_VIDEO_MB = 50;
 
 let me = JSON.parse(localStorage.getItem(LS) || 'null'); // { key, name }
 let isAdmin = false;
+let roleCheck = 0; // 管理员检测的 HTTP 状态码，显示在「设置」里便于排查
 let tab = 'compose';
 let busy = false;
 const draft = { photos: [], videos: [] }; // 待提交的 File
@@ -133,9 +134,12 @@ async function verify() {
   try { await gh(''); }
   catch (e) { const name = me.name; me = null; renderSetup(explain(e), name); return false; }
   // 读取类接口不能用来判断：细粒度钥匙对公开仓库自带只读权限，发布人钥匙也能读到 Pages 信息。
-  // 改为发一个故意写错参数的 Pages 修改请求：有 Pages 写权限 → GitHub 回 422（参数错误，什么都不会改）；没有 → 403
-  try { await gh('/pages', { method: 'PUT', body: JSON.stringify({ build_type: '__probe_invalid__' }) }); isAdmin = false; }
-  catch (e) { isAdmin = e.status === 422; }
+  // 修改 Pages 设置的接口又额外要求 Administration 权限，也不行。
+  // 所以发一个缺少必填参数的「Pages 部署」请求（只要求 Pages 写权限）：
+  // 有权限 → GitHub 回 422（参数不全，什么都不会发生）；没有 → 403
+  try { await gh('/pages/deployments', { method: 'POST', body: '{}' }); roleCheck = 200; }
+  catch (e) { roleCheck = e.status || 0; }
+  isAdmin = roleCheck === 422;
   return true;
 }
 
@@ -335,6 +339,7 @@ function renderSettings() {
   const v = $('#view');
   v.innerHTML = `
     <div class="panel">
+      <p>钥匙类型：<b>${isAdmin ? '管理员' : '发布人'}</b> <span class="hint">（检测结果 ${roleCheck}${isAdmin ? '' : '；如果这应该是管理员钥匙，请确认生成时加了 Pages：Read and write'}）</span></p>
       <label>署名<input id="nName" value="${esc(me.name)}"></label>
       <button id="nSave">保存署名</button>
       <hr>
