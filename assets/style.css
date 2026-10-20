@@ -98,6 +98,7 @@ img, video { max-width: 100%; display: block; }
 .timeline li::before { content: counter(t); position: absolute; left: -12px; top: 2px; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; line-height: 22px; text-align: center; }
 .timeline p { margin: 0; line-height: 1.9; color: #262b40; }
 .timeline .photos { margin-top: 10px; }
+.readmore { margin-left: 6px; white-space: nowrap; font-size: 14px; }
 .att { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .att a { display: block; width: 96px; height: 128px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
 .att img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
