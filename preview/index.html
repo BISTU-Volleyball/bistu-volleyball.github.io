@@ -71,9 +71,15 @@ home: true
   <div class="h-head"><span>MOMENTS</span><h2>精彩瞬间</h2><nav><a href="{{ '/gallery/' | relative_url }}">风采相册 ›</a></nav></div>
   <div class="h-wall">
     {% assign n = 0 %}
-    {% for p in news %}{% if p.images.size > 2 and n < 8 %}
-      {% assign im = p.images[2] %}{% assign n = n | plus: 1 %}
-      <a href="{{ p.url | relative_url }}" title="{{ p.title }}"><img src="{{ im | relative_url }}" alt=""><span>{{ p.title | truncate: 22 }}</span></a>
+    {% for p in news %}{% if n < 8 %}
+      {% comment %}每篇取一张横幅照片：跳过封面，也跳过方形的拼图{% endcomment %}
+      {% assign pick = '' %}
+      {% for im in p.images %}{% if pick == '' %}{% assign r = p.ratios[forloop.index0] %}
+        {% if r >= 1.2 and r <= 1.95 and im != p.cover %}{% assign pick = im %}{% endif %}
+      {% endif %}{% endfor %}
+      {% if pick != '' %}{% assign n = n | plus: 1 %}
+      <a href="{{ p.url | relative_url }}" title="{{ p.title }}"><img src="{{ pick | relative_url }}" alt=""><span>{{ p.title | truncate: 22 }}</span></a>
+      {% endif %}
     {% endif %}{% endfor %}
   </div>
 </section>
