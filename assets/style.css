@@ -50,17 +50,6 @@ img, video { max-width: 100%; display: block; }
   .nav a { padding: 6px 10px; font-size: 14px; }
 }
 
-/* 首页 */
-.hero { margin: 16px auto 0; max-width: 800px; }
-.hero img { width: 100%; border-radius: var(--radius); box-shadow: var(--shadow); }
-.notice { display: flex; justify-content: space-between; max-width: 800px; margin: 12px auto 0; padding: 12px 16px; border-radius: 12px; background: var(--accent); color: #fff; font-weight: 600; }
-.intro { max-width: 800px; margin: 20px auto 0; background: var(--surface); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); }
-.intro h2 { margin: 0 0 8px; font-size: 18px; }
-.intro p { margin: 0 0 8px; color: var(--ink-2); line-height: 1.8; }
-.block { margin-top: 28px; }
-.block-head { display: flex; align-items: baseline; justify-content: space-between; }
-.block-head h2 { font-size: 20px; margin: 0 0 12px; }
-.more { font-size: 14px; }
 .empty { color: var(--muted); text-align: center; padding: 40px 0; }
 
 /* 卡片 */
@@ -122,7 +111,3 @@ img, video { max-width: 100%; display: block; }
 .contact { margin: 12px 0 0; font-size: 16px; color: #262b40; }
 @media (max-width: 720px) { .stats { grid-template-columns: repeat(2, 1fr); } }
 
-/* 首页照片条 */
-.strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.strip img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 10px; }
-@media (max-width: 720px) { .strip { grid-template-columns: repeat(2, 1fr); } }
