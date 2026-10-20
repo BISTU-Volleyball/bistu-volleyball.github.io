@@ -3,9 +3,10 @@
 body { overflow-x: hidden; }
 
 /* 滚动到视野内时淡入（--d 控制先后） */
-.reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s ease, transform .7s ease; transition-delay: calc(var(--d, 0) * 110ms); }
-.reveal.in { opacity: 1; transform: none; }
-@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
+/* 只有脚本正常运行时（html 加 reveal-on）才隐藏，否则内容直接显示 */
+.reveal-on .reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s ease, transform .7s ease; transition-delay: calc(var(--d, 0) * 110ms); }
+.reveal-on .reveal.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .reveal-on .reveal { opacity: 1; transform: none; transition: none; } }
 
 /* 大图首屏：多张时轮播，缓慢推近 */
 .h-hero { width: 100vw; margin-left: calc(50% - 50vw); min-height: 460px; aspect-ratio: 21 / 9; max-height: 74vh; display: flex; align-items: flex-end; background: var(--deep); position: relative; overflow: hidden; }

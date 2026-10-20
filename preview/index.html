@@ -122,7 +122,8 @@ home: true
     dots.forEach((d, k) => d.onclick = () => { clearInterval(t); show(k); t = setInterval(() => show((i + 1) % slides.length), 6000); });
   }
   const els = document.querySelectorAll('.reveal');
-  if (!('IntersectionObserver' in window)) return els.forEach(e => e.classList.add('in'));
+  if (!('IntersectionObserver' in window)) return;
+  document.documentElement.classList.add('reveal-on');
   const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .15 });
   els.forEach(e => io.observe(e));
 })();
