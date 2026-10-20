@@ -11,8 +11,8 @@ home: true
 
 <section class="h-hero">
   {% for h in heroes %}<div class="h-slide{% if forloop.first %} on{% endif %}" style="background-image: url('{{ h.src | relative_url }}'); background-position: center {{ h.pos | default: '50%' }}"></div>{% endfor %}
+  <div class="h-badge"><img src="{{ '/assets/img/logo-card.jpg' | relative_url }}" alt="北京信息科技大学教职工排球协会标志"></div>
   <div class="h-hero-in">
-    <div class="h-badge"><img src="{{ '/assets/img/logo-card.jpg' | relative_url }}" alt="北京信息科技大学教职工排球协会标志"></div>
     <div class="h-kicker">BISTU VOLLEYBALL · 成立于 2025</div>
     <h1>北京信息科技大学<br>教职工排球协会</h1>
     <p>{{ site.home.slogan }}</p>
