@@ -11,9 +11,8 @@ home: true
 
 <section class="h-hero">
   {% for h in heroes %}<div class="h-slide{% if forloop.first %} on{% endif %}" style="background-image: url('{{ h.src | relative_url }}'); background-position: center {{ h.pos | default: '50%' }}"></div>{% endfor %}
-  <div class="h-badge"><img src="{{ '/assets/img/logo-card.jpg' | relative_url }}" alt="北京信息科技大学教职工排球协会标志"></div>
   <div class="h-hero-in">
-    <div class="h-kicker">BISTU VOLLEYBALL · 成立于 2025</div>
+    <div class="h-kicker"><img class="h-emblem" src="{{ '/assets/img/logo-emblem.png' | relative_url }}" alt="排协标志">BISTU VOLLEYBALL · 成立于 2025</div>
     <h1>北京信息科技大学<br>教职工排球协会</h1>
     <p>{{ site.home.slogan }}</p>
     <div class="h-cta">
@@ -100,6 +99,7 @@ home: true
 <section class="h-join">
   <div class="h-join-in reveal">
     <div>
+      <img class="h-join-logo" src="{{ '/assets/img/logo-card.jpg' | relative_url }}" alt="北京信息科技大学教职工排球协会标志">
       <div class="h-kicker">JOIN US</div>
       <h2>加入我们</h2>
       <p>无论你是萌新还是高手，这里都有你的位置！<br>不要“排”徊，加入我们，一起热血澎“排”、“排”山倒海！</p>
