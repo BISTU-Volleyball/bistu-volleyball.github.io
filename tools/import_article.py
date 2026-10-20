@@ -70,7 +70,7 @@ def parse(url):
         m = re.search(r"msg_title = '([^']*)'", page) or re.search(r'<meta property="og:title" content="([^"]*)"', page)
         if not m or 'id="js_content"' not in page:
             raise RuntimeError('读不到文章内容（链接可能已失效、被删除，或需要在微信里验证）')
-        meta['title'] = html.unescape(m.group(1)).strip()
+        meta['title'] = re.sub(r'\s+', ' ', html.unescape(m.group(1))).strip()
         m = re.search(r'var nickname = htmlDecode\("([^"]*)"\)', page)
         meta['source'] = (html.unescape(m.group(1)) if m else '微信公众号') + '微信公众号'
         m = re.search(r'var ct = "(\d+)"', page)
@@ -130,7 +130,7 @@ def rows_of(n, ratios):
             take = 2 if k == 4 else min(3, k)
             rows.append(run[:take]); del run[:take]; k = len(run)
     for i in range(n):
-        if ratios[i] > 1.75:  # 宽幅合影等，单独一行
+        if ratios[i] > 1.9:  # 宽幅合影等（比 16:9 更宽），单独一行
             flush(); rows.append([i])
         else:
             run.append(i)
@@ -144,6 +144,7 @@ def credit_line(seq_texts):
         m = CREDIT.match(t)
         if m and m.group(1) in KEEP_CREDIT:
             who = re.sub(r'\s+', ' ', m.group(2)).strip()
+            who = re.sub(r'(?<=[一-鿿]) (?=[一-鿿](?:$|[ ；;、，,]))', '', who)  # “王   鑫”→“王鑫”
             keep.append(f'{m.group(1)}：{who}')
     return '　'.join(keep)
 
@@ -156,6 +157,7 @@ def build(url, section='news', requester=''):
 
     # 下载并筛选图片
     kept = []  # (seq 序号, Image)
+    first_text = next((i for i, e in enumerate(seq) if 't' in e and len(e['t']) >= 40), len(seq))
     for idx, e in enumerate(seq):
         if 'img' not in e:
             continue
@@ -168,6 +170,8 @@ def build(url, section='news', requester=''):
             im.load()
         except Exception:
             continue  # SVG 等打不开的图，都是装饰
+        if idx < first_text and im.width / im.height >= 2:
+            continue  # 正文开始前的横幅（公众号页眉、栏目头图）
         if is_photo(im):
             kept.append((idx, im))
     os.makedirs(adir, exist_ok=True)
