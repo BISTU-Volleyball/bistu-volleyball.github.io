@@ -55,7 +55,7 @@ function explain(e) {
 
 // ---------- 文章文件格式 ----------
 // front matter 每行一个 key: JSON 值（JSON 也是合法 YAML）；正文每段一行，包在 raw 里防止 Liquid 误解析
-const FM_KEYS = ['layout', 'title', 'date', 'section', 'author', 'summary', 'cover', 'cover_pos', 'images', 'ratios', 'videos', 'submitted', 'approved_by'];
+const FM_KEYS = ['layout', 'title', 'date', 'section', 'author', 'summary', 'cover', 'cover_pos', 'images', 'ratios', 'videos', 'submitted', 'submitted_by', 'source_url', 'approved_by'];
 
 function buildPost(p) {
   const paras = p.text.split('\n').map(s => s.trim().replace(/\{%\s*endraw\s*%\}/g, '')).filter(Boolean);
@@ -146,8 +146,45 @@ async function verify() {
 }
 
 // ---------- 投稿 ----------
+let composeMode = 'write';
 function renderCompose() {
-  const v = $('#view');
+  $('#view').innerHTML = `
+    <div class="modes"><button data-mode="write" class="${composeMode === 'write' ? 'on' : ''}">✍️ 自己写</button><button data-mode="import" class="${composeMode === 'import' ? 'on' : ''}">🔗 转载公众号文章</button></div>
+    <div id="cbody"></div>`;
+  root.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { if (!busy) { composeMode = b.dataset.mode; renderCompose(); } });
+  (composeMode === 'import' ? renderImport : renderWrite)();
+}
+
+// 转载：提交一个请求文件 _import/<编号>.json，GitHub Actions 抓取后生成待审核稿（tools/import_article.py）
+const IMPORT_OK = /^https:\/\/(mp\.weixin\.qq\.com\/s|news\.bistu\.edu\.cn\/)/;
+function renderImport() {
+  const v = $('#cbody');
+  v.innerHTML = `
+    <div class="panel">
+      <label>文章链接<input id="iUrl" placeholder="https://mp.weixin.qq.com/s/..."></label>
+      <p class="hint">支持微信公众号文章和学校新闻网（news.bistu.edu.cn）。在微信里打开文章 → 右上角「…」→「复制链接」。</p>
+      <label>栏目<select id="iSec">${SECTIONS.map(s => `<option value="${s.key}">${s.name}</option>`).join('')}</select></label>
+      <p class="hint">提交后网站会自动抓取标题、日期、正文和照片，按原文顺序排好，约 1~2 分钟后出现在「待审核」里，由管理员检查后发布。</p>
+      <button class="primary" id="iGo">开始转载</button>
+    </div>`;
+  $('#iGo').onclick = async () => {
+    const link = $('#iUrl').value.trim().replace(/#.*$/, '');
+    if (!IMPORT_OK.test(link)) return toast('请粘贴公众号文章（mp.weixin.qq.com/s/…）或学校新闻网的链接', true);
+    const btn = $('#iGo');
+    busy = true; btn.disabled = true;
+    try {
+      const id = `${Date.now()}-${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).slice(0, 4)}`;
+      const req = { url: link, section: $('#iSec').value, by: me.name, at: new Date().toISOString() };
+      await commitFiles(cfg(), [{ path: `_import/${id}.json`, text: JSON.stringify(req, null, 1) + '\n' }], `转载请求：${link}（${me.name}）`);
+      toast('已提交，约 1~2 分钟后在「待审核」里出现');
+      tab = 'pending'; busy = false; render();
+    } catch (e) { toast('提交失败：' + explain(e), true); }
+    finally { busy = false; btn.disabled = false; }
+  };
+}
+
+function renderWrite() {
+  const v = $('#cbody');
   v.innerHTML = `
     <div class="panel">
       <label>标题<input id="cTitle" maxlength="60" placeholder="例如：我校教职工气排球团体赛圆满落幕"></label>
@@ -271,13 +308,67 @@ function preview(p) {
     </div>`;
 }
 
+// 转载请求队列：_import/*.json 正在抓取，*.err.json 失败
+async function loadQueue() {
+  const files = (await listDir('_import')).filter(f => f.name.endsWith('.json'));
+  return Promise.all(files.map(async f => {
+    const d = await gh(`/contents/${f.path}?ref=main`);
+    return { ...JSON.parse(b64text(d.content)), path: f.path, name: f.name, failed: f.name.endsWith('.err.json') };
+  }));
+}
+
+function drawQueue(box, queue) {
+  box.innerHTML = queue.map((q, i) => `
+    <div class="panel queue ${q.failed ? 'bad' : ''}" data-q="${i}">
+      ${q.failed ? `❌ 转载失败：${esc(q.error || '')}` : '⏳ 正在抓取，约 1~2 分钟…'}
+      <div class="meta">${esc(q.url)} · ${esc(q.by || '')} · ${esc(secName(q.section))}</div>
+      ${q.failed ? '<div class="actions"><button data-qa="retry">重试</button><button class="danger" data-qa="del">删除</button></div>' : ''}
+    </div>`).join('');
+  box.querySelectorAll('[data-q]').forEach(el => {
+    const q = queue[+el.dataset.q];
+    const btn = k => el.querySelector(`[data-qa="${k}"]`);
+    if (!q.failed) return;
+    btn('retry').onclick = () => act(el, async () => {
+      const { path, name, failed, error, ...req } = q;
+      await commitFiles(cfg(), [{ path: path.replace('.err.json', '.json'), text: JSON.stringify(req, null, 1) + '\n' }, { path, del: true }], `重试转载：${q.url}`);
+      return '已重新提交';
+    });
+    btn('del').onclick = () => act(el, async () => {
+      await commitFiles(cfg(), [{ path, del: true }], `删除转载请求：${q.url}`);
+      return '已删除';
+    });
+  });
+}
+
+let queueTimer = null;
 async function renderPending() {
   const v = $('#view');
+  clearTimeout(queueTimer);
   v.innerHTML = '<p class="hint">读取中…</p>';
-  let posts;
-  try { posts = await loadPosts('_pending'); } catch (e) { v.innerHTML = `<p class="err">读取失败：${esc(explain(e))}</p>`; return; }
-  if (!posts.length) { v.innerHTML = '<p class="empty">没有待审核的投稿。</p>'; return; }
-  v.innerHTML = `<p class="hint">${isAdmin ? '可以直接修改标题、栏目、日期和正文后再点「通过并发布」。' : '以下投稿正在等待管理员审核。'}刚提交的投稿，照片和视频约 1 分钟后才能预览。</p>` +
+  let posts, queue;
+  try { [posts, queue] = await Promise.all([loadPosts('_pending'), loadQueue()]); } catch (e) { v.innerHTML = `<p class="err">读取失败：${esc(explain(e))}</p>`; return; }
+  v.innerHTML = '<div id="queue"></div><div id="plist"></div>';
+  drawQueue($('#queue'), queue);
+  // 有正在抓取的请求时，每 15 秒查一次；完成后提示刷新（不自动刷新，免得冲掉正在修改的内容）
+  const waiting = queue.filter(q => !q.failed).length;
+  const poll = async () => {
+    if (tab !== 'pending' || !$('#queue')) return;
+    try {
+      const q2 = await loadQueue();
+      const left = q2.filter(q => !q.failed).length;
+      drawQueue($('#queue'), q2);
+      if (left < waiting) {
+        $('#queue').insertAdjacentHTML('afterbegin', '<div class="panel queue ok">✅ 转载完成 <button class="primary" id="qReload">刷新查看</button></div>');
+        $('#qReload').onclick = () => render();
+        return;
+      }
+    } catch { }
+    queueTimer = setTimeout(poll, 15000);
+  };
+  if (waiting) queueTimer = setTimeout(poll, 15000);
+  const list = $('#plist');
+  if (!posts.length) { list.innerHTML = '<p class="empty">没有待审核的投稿。</p>'; return; }
+  list.innerHTML = `<p class="hint">${isAdmin ? '可以直接修改标题、栏目、日期和正文后再点「通过并发布」。' : '以下投稿正在等待管理员审核。'}刚提交的投稿，照片和视频约 1 分钟后才能预览。</p>` +
     posts.map((p, i) => `
     <div class="panel item" data-i="${i}">
       <div class="meta">${esc(p.author || '未署名')} · 投稿于 ${esc((p.submitted || '').slice(0, 10))}</div>
@@ -292,19 +383,43 @@ async function renderPending() {
           <select class="eCoverPos">${COVER_POS.map(([v, n]) => `<option value="${v}"${v === (p.cover_pos || '50%') ? ' selected' : ''}>${n}</option>`).join('')}</select></div>` : ''}
         <label>正文<textarea class="eText" rows="6">${esc(p.text)}</textarea></label>`
       : `<h3>${esc(p.title)}</h3><div class="meta">${esc(secName(p.section))} · ${esc(p.date)}</div><div class="pv-text">${p.text.split('\n').map(s => `<p>${esc(s)}</p>`).join('')}</div>`}
-      ${preview(p)}
+      ${isAdmin ? '<div class="pv-media eMedia"></div>' : preview(p)}
       ${isAdmin ? '<div class="actions"><button class="primary" data-act="ok">通过并发布</button><button class="danger" data-act="no">退回（删除）</button></div>' : ''}
     </div>`).join('');
   if (!isAdmin) return;
-  v.querySelectorAll('.item').forEach(card => {
+  list.querySelectorAll('.item').forEach(card => {
     const p = posts[+card.dataset.i];
+    // 可删除单张照片：st 记录当前保留的照片，删掉的在发布时一并从仓库删除
+    const st = { images: [...p.images], ratios: p.ratios && p.ratios.length === p.images.length ? [...p.ratios] : null, removed: [], cover: p.cover };
+    const drawMedia = () => {
+      const box = card.querySelector('.eMedia');
+      box.innerHTML = p.videos.map(v => `<video controls preload="none" src="${url(v.src)}" ${v.poster ? `poster="${url(v.poster)}"` : ''}></video>`).join('') +
+        st.images.map((im, k) => `<div class="pvi"><a href="${url(im)}" target="_blank"><img loading="lazy" src="${url(im)}"></a><span>图${k + 1}${im === st.cover ? ' · 封面' : ''}</span><button data-del="${k}" title="删除这张照片">×</button></div>`).join('');
+      box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+        const k = +b.dataset.del;
+        const [gone] = st.images.splice(k, 1);
+        if (st.ratios) st.ratios.splice(k, 1);
+        st.removed.push(gone);
+        const ta = card.querySelector('.eText');
+        ta.value = ta.value.replace(/【图(\d+)】/g, (m, n) => +n === k + 1 ? '' : +n > k + 1 ? `【图${n - 1}】` : m)
+          .split('\n').filter(l => l.trim()).join('\n');
+        if (gone === st.cover) {
+          st.cover = st.images[0] || '';
+          const ci = card.querySelector('.eCoverImg');
+          if (ci) { if (st.cover) ci.src = url(st.cover); else card.querySelector('.cover-pick').remove(); }
+        }
+        drawMedia();
+      });
+    };
+    drawMedia();
     const sel = card.querySelector('.eCoverPos');
     if (sel) sel.onchange = () => { card.querySelector('.eCoverImg').style.objectPosition = `50% ${sel.value}`; };
     card.querySelector('[data-act="ok"]').onclick = () => act(card, async () => {
       const pos = card.querySelector('.eCoverPos')?.value;
-      const q = { ...p, title: card.querySelector('.eTitle').value.trim(), section: card.querySelector('.eSec').value, date: card.querySelector('.eDate').value, text: card.querySelector('.eText').value, cover_pos: pos && pos !== '50%' ? pos : undefined, approved_by: me.name };
+      const q = { ...p, title: card.querySelector('.eTitle').value.trim(), section: card.querySelector('.eSec').value, date: card.querySelector('.eDate').value, text: card.querySelector('.eText').value, cover_pos: pos && pos !== '50%' ? pos : undefined, approved_by: me.name,
+        images: st.images, ratios: st.ratios || undefined, cover: st.cover || undefined };
       if (!q.title || !/^\d{4}-\d{2}-\d{2}$/.test(q.date)) throw new Error('标题和日期不能为空');
-      await commitFiles(cfg(), [{ path: `_posts/${p.slug}.md`, text: buildPost(q) }, { path: p.path, del: true }], `发布：${q.title}（审核：${me.name}）`);
+      await commitFiles(cfg(), [{ path: `_posts/${p.slug}.md`, text: buildPost(q) }, { path: p.path, del: true }, ...st.removed.map(f => ({ path: f.replace(/^\//, ''), del: true }))], `发布：${q.title}（审核：${me.name}）`);
       return '已发布，约 1 分钟后出现在网站上';
     });
     card.querySelector('[data-act="no"]').onclick = () => {

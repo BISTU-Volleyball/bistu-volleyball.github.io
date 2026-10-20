@@ -56,3 +56,13 @@
 .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: #1d2340; color: #fff; padding: 10px 18px; border-radius: 10px; z-index: 100; max-width: 90vw; font-size: 15px; box-shadow: 0 8px 24px rgba(0, 0, 0, .2); }
 .toast.bad { background: var(--bad); }
 code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
+.modes { display: flex; gap: 6px; margin-bottom: 10px; }
+.pub .modes button { flex: 1; }
+.pub .modes button.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.queue { font-size: 15px; }
+.queue.bad { border: 1px solid #f3c4c4; }
+.queue.ok { display: flex; align-items: center; justify-content: space-between; }
+.queue .meta { margin-top: 6px; word-break: break-all; }
+.pvi { position: relative; }
+.pvi span { position: absolute; left: 4px; bottom: 4px; background: rgba(0, 0, 0, .6); color: #fff; font-size: 12px; padding: 1px 6px; border-radius: 4px; }
+.pub .pvi button { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; padding: 0; border-radius: 50%; background: rgba(0, 0, 0, .6); color: #fff; border: 0; font-size: 18px; line-height: 28px; }

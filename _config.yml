@@ -36,3 +36,4 @@ sections:
 exclude:
   - README.md
   - 使用说明.md
+  - tools
