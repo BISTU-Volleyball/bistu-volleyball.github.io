@@ -11,6 +11,7 @@ const BASE = root.dataset.base; // 网站根路径，一般是 "/"
 const SECTIONS = JSON.parse(root.dataset.sections);
 const LS = 'bv_pub';
 const MAX_VIDEO_MB = 50;
+const MARK = { photos: '图', videos: '视频' }; // 正文里插图标记：【图1】【视频1】
 
 let me = JSON.parse(localStorage.getItem(LS) || 'null'); // { key, name }
 let isAdmin = false;
@@ -57,7 +58,7 @@ const FM_KEYS = ['layout', 'title', 'date', 'section', 'author', 'summary', 'cov
 
 function buildPost(p) {
   const paras = p.text.split('\n').map(s => s.trim().replace(/\{%\s*endraw\s*%\}/g, '')).filter(Boolean);
-  const data = { ...p, layout: 'post', date: `${p.date} 12:00:00 +0800`, summary: paras.join(' ').slice(0, 80) };
+  const data = { ...p, layout: 'post', date: `${p.date} 12:00:00 +0800`, summary: paras.join(' ').replace(/【(图|视频)\d+】/g, '').trim().slice(0, 80) };
   const fm = FM_KEYS.filter(k => data[k] !== undefined && data[k] !== '' && !(Array.isArray(data[k]) && !data[k].length))
     .map(k => `${k}: ${JSON.stringify(data[k])}`);
   return `---\n${fm.join('\n')}\n---\n{% raw %}\n${paras.join('\n\n')}\n{% endraw %}\n`;
@@ -154,6 +155,7 @@ function renderCompose() {
         <label>日期<input id="cDate" type="date" value="${today()}"></label>
       </div>
       <label>正文<textarea id="cText" rows="9" placeholder="直接输入文字，每按一次回车就是新的一段"></textarea></label>
+      <p class="hint">想让照片或视频出现在正文某个位置：把光标放到那里，点缩略图下方的「插入正文」（会写入【图1】这样的标记）。同一行写两个标记会并排显示；没插入的照片视频会排在文末。</p>
       <div class="media">
         <div class="media-head"><b>照片</b><span class="hint">自动缩小到适合网页的大小；第一张作为封面</span><label class="btn">＋ 添加照片<input id="cPhotos" type="file" accept="image/*" multiple hidden></label></div>
         <div class="thumbs" id="tPhotos"></div>
@@ -167,12 +169,28 @@ function renderCompose() {
       <div id="cStatus" class="status"></div>
     </div>`;
   const drawThumbs = () => {
-    $('#tPhotos').innerHTML = draft.photos.map((f, i) => `<div class="th"><img src="${f.preview}"><button data-rm="photos:${i}">×</button>${i === 0 ? '<span>封面</span>' : ''}</div>`).join('');
-    $('#tVideos').innerHTML = draft.videos.map((f, i) => `<div class="th vid"><video src="${f.preview}" muted preload="metadata"></video><button data-rm="videos:${i}">×</button><span>${(f.size / 1048576).toFixed(0)}MB</span></div>`).join('');
+    $('#tPhotos').innerHTML = draft.photos.map((f, i) => `<div class="thw"><div class="th"><img src="${f.preview}"><button data-rm="photos:${i}">×</button><span>${i === 0 ? '封面 · ' : ''}图${i + 1}</span></div><button class="ins" data-ins="photos:${i}">插入正文</button></div>`).join('');
+    $('#tVideos').innerHTML = draft.videos.map((f, i) => `<div class="thw"><div class="th vid"><video src="${f.preview}" muted preload="metadata"></video><button data-rm="videos:${i}">×</button><span>视频${i + 1} · ${(f.size / 1048576).toFixed(0)}MB</span></div><button class="ins" data-ins="videos:${i}">插入正文</button></div>`).join('');
     v.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => {
       const [k, i] = b.dataset.rm.split(':');
       URL.revokeObjectURL(draft[k][i].preview);
-      draft[k].splice(+i, 1); drawThumbs();
+      draft[k].splice(+i, 1);
+      // 删掉这张的标记，后面的编号依次减一
+      const word = MARK[k], ta = $('#cText');
+      ta.value = ta.value.replace(new RegExp(`【${word}(\\d+)】`, 'g'), (m, n) => +n === +i + 1 ? '' : +n > +i + 1 ? `【${word}${n - 1}】` : m);
+      drawThumbs();
+    });
+    v.querySelectorAll('[data-ins]').forEach(b => b.onclick = () => {
+      const [k, i] = b.dataset.ins.split(':');
+      const ta = $('#cText'), mark = `【${MARK[k]}${+i + 1}】`;
+      const a = ta.selectionStart ?? ta.value.length, z = ta.selectionEnd ?? a;
+      const before = ta.value.slice(0, a), after = ta.value.slice(z);
+      // 标记单独成行；如果光标前紧挨着另一个标记，就放在同一行（并排）
+      const pre = !before || before.endsWith('\n') || /】$/.test(before) ? '' : '\n';
+      const post = !after || after.startsWith('\n') ? '' : '\n';
+      ta.value = before + pre + mark + post + after;
+      const pos = (before + pre + mark).length;
+      ta.focus(); ta.setSelectionRange(pos, pos);
     });
   };
   const add = k => e => {

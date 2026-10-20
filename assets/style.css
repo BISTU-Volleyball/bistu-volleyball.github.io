@@ -76,7 +76,12 @@ img, video { max-width: 100%; display: block; }
 .post h2 { font-size: 19px; margin-top: 24px; }
 .crumb { font-size: 14px; }
 .post-body { margin-top: 16px; line-height: 1.9; font-size: 16px; color: #262b40; }
-.post-body p { margin: 0 0 12px; }
+.post-body p { margin: 0 0 12px; text-indent: 2em; }
+/* 正文插图：【图N】所在段落变成一行图片，多张并排 */
+.post-body p:has(> .fig) { text-indent: 0; display: flex; gap: 8px; margin: 16px 0; }
+.post-body .fig { flex: 1; min-width: 0; display: block; }
+.post-body .fig img, .post-body .fig video { width: 100%; height: auto; border-radius: 10px; background: #000; }
+.post-body p:has(> .fig + .fig) .fig img { aspect-ratio: 4 / 3; object-fit: cover; }
 .post li { line-height: 1.9; }
 .videos figure, .photos { margin: 16px 0 0; }
 .videos video { width: 100%; border-radius: 10px; background: #000; }

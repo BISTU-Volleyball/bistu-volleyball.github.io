@@ -2,15 +2,37 @@
 layout: default
 ---
 {% assign sec = site.sections | where: "key", page.section | first %}
+{% comment %}
+  正文里单独一行写【图3】/【视频1】，就在该位置显示第 3 张照片 / 第 1 个视频；
+  同一行写【图2】【图3】则并排显示。正文里没用到的照片和视频照旧排在文末。
+{% endcomment %}
+{% assign body = content %}
+{% assign used_img = ',' %}
+{% assign used_vid = ',' %}
+{% for im in page.images %}
+  {% assign tag = '【图' | append: forloop.index | append: '】' %}
+  {% if body contains tag %}
+    {% capture fig %}<a class="fig" href="{{ im | relative_url }}" target="_blank"><img loading="lazy" src="{{ im | relative_url }}" alt=""></a>{% endcapture %}
+    {% assign body = body | replace: tag, fig %}
+    {% assign used_img = used_img | append: forloop.index | append: ',' %}
+  {% endif %}
+{% endfor %}
+{% for v in page.videos %}
+  {% assign tag = '【视频' | append: forloop.index | append: '】' %}
+  {% if body contains tag %}
+    {% capture fig %}<span class="fig vfig"><video controls playsinline preload="none" src="{{ v.src | relative_url }}"{% if v.poster %} poster="{{ v.poster | relative_url }}"{% endif %}></video></span>{% endcapture %}
+    {% assign body = body | replace: tag, fig %}
+    {% assign used_vid = used_vid | append: forloop.index | append: ',' %}
+  {% endif %}
+{% endfor %}
 <article class="post">
   <div class="crumb">{% if sec %}<a href="{{ sec.url | relative_url }}">{{ sec.name }}</a> ›{% endif %}</div>
   <h1>{{ page.title }}</h1>
   <div class="meta">{{ page.date | date: '%Y年%-m月%-d日' }}{% if page.author %} · {{ page.author }}{% endif %}</div>
-  <div class="post-body">{{ content }}</div>
-  {% if page.videos and page.videos.size > 0 %}
-  <div class="videos">{% for v in page.videos %}
-    <figure><video controls playsinline preload="none" src="{{ v.src | relative_url }}"{% if v.poster %} poster="{{ v.poster | relative_url }}"{% endif %}></video>{% if v.caption %}<figcaption>{{ v.caption }}</figcaption>{% endif %}</figure>
-  {% endfor %}</div>{% endif %}
-  {% if page.images and page.images.size > 0 %}
-  <div class="photos">{% for im in page.images %}<a href="{{ im | relative_url }}" target="_blank"><img loading="lazy" src="{{ im | relative_url }}" alt=""></a>{% endfor %}</div>{% endif %}
+  <div class="post-body">{{ body }}</div>
+  {% capture rest_vid %}{% for v in page.videos %}{% assign key = ',' | append: forloop.index | append: ',' %}{% unless used_vid contains key %}
+    <figure><video controls playsinline preload="none" src="{{ v.src | relative_url }}"{% if v.poster %} poster="{{ v.poster | relative_url }}"{% endif %}></video>{% if v.caption %}<figcaption>{{ v.caption }}</figcaption>{% endif %}</figure>{% endunless %}{% endfor %}{% endcapture %}
+  {% assign rest_vid = rest_vid | strip %}{% if rest_vid != '' %}<div class="videos">{{ rest_vid }}</div>{% endif %}
+  {% capture rest_img %}{% for im in page.images %}{% assign key = ',' | append: forloop.index | append: ',' %}{% unless used_img contains key %}<a href="{{ im | relative_url }}" target="_blank"><img loading="lazy" src="{{ im | relative_url }}" alt=""></a>{% endunless %}{% endfor %}{% endcapture %}
+  {% assign rest_img = rest_img | strip %}{% if rest_img != '' %}<div class="photos">{{ rest_img }}</div>{% endif %}
 </article>
