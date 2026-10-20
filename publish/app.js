@@ -100,7 +100,7 @@ const postUrl = p => url(`posts/${p.date.slice(0, 4)}/${p.date.slice(5, 7)}${p.d
 // ---------- 页面框架 ----------
 function render() {
   if (!me) return renderSetup();
-  const tabs = [['compose', '✍️ 投稿'], ['pending', isAdmin ? '🗂️ 审核' : '⏳ 待审核'], ...(isAdmin ? [['published', '📰 已发布']] : []), ['settings', '⚙️ 设置']];
+  const tabs = [['compose', '✍️ 投稿'], ['pending', isAdmin ? '🗂️ 审核' : '⏳ 待审核'], ...(isAdmin ? [['published', '📰 已发布'], ['home', '🏠 首页']] : []), ['settings', '⚙️ 设置']];
   root.innerHTML = `
     <div class="pub-head"><h1>发布助手</h1><span class="who">${esc(me.name || '未署名')}${isAdmin ? ' · <b>管理员</b>' : ''}</span></div>
     <div class="tabs">${tabs.map(([k, n]) => `<button data-tab="${k}" class="${tab === k ? 'on' : ''}">${n}</button>`).join('')}</div>
@@ -109,7 +109,7 @@ function render() {
     if (busy) return toast('正在提交，请稍候', true);
     tab = b.dataset.tab; render();
   });
-  ({ compose: renderCompose, pending: renderPending, published: renderPublished, settings: renderSettings })[tab]();
+  ({ compose: renderCompose, pending: renderPending, published: renderPublished, home: renderHome, settings: renderSettings })[tab]();
 }
 
 function renderSetup(err, name = me?.name || '') {
@@ -472,6 +472,108 @@ async function renderPublished() {
         return '已删除';
       });
     };
+  });
+}
+
+// ---------- 首页设置（管理员）----------
+// _data/home.json：heroes = 首屏大图 [{src, pos}]（多张轮播）；wall = 照片墙 [{src, post}]（空则自动取最新报道）
+const HERO_POS = [['20%', '偏上'], ['35%', '稍偏上'], ['50%', '居中'], ['65%', '稍偏下'], ['80%', '偏下']];
+const relUrl = p => `/posts/${p.date.slice(0, 4)}/${p.date.slice(5, 7)}${p.date.slice(8, 10)}-${p.slug.slice(11)}/`;
+
+async function renderHome() {
+  const v = $('#view');
+  v.innerHTML = '<p class="hint">读取中…</p>';
+  let home, posts;
+  try {
+    const d = await gh('/contents/_data/home.json?ref=main').catch(e => { if (e.status === 404) return null; throw e; });
+    home = d ? JSON.parse(b64text(d.content)) : {};
+    posts = await loadPosts('_posts');
+  } catch (e) { v.innerHTML = `<p class="err">读取失败：${esc(explain(e))}</p>`; return; }
+  const st = { heroes: [...(home.heroes || [])], wall: [...(home.wall || [])] };
+  const ratioOf = src => { for (const p of posts) { const i = p.images.indexOf(src); if (i >= 0 && p.ratios) return p.ratios[i]; } return 0; };
+
+  v.innerHTML = `
+    <div class="panel">
+      <h3>首屏大图 <span class="hint">1~3 张，多张时每 6 秒轮播；建议选人多、面朝镜头、光线亮的横幅合影</span></h3>
+      <div id="hHeroes" class="hs-list"></div>
+    </div>
+    <div class="panel">
+      <h3>照片墙 <span class="hint">最多 8 张，第 1 张显示为大图、第 4 张为宽图；一张都不选时自动用最新 8 篇报道的照片</span></h3>
+      <div id="hWall" class="hs-wall"></div>
+    </div>
+    <div class="panel">
+      <button class="primary" id="hSave">保存首页设置</button> <span class="hint">保存后约 1 分钟生效</span>
+    </div>
+    <div class="panel">
+      <h3>从已发布的文章里选照片</h3>
+      <div id="hPick"></div>
+    </div>`;
+
+  const draw = () => {
+    $('#hHeroes').innerHTML = st.heroes.length ? st.heroes.map((h, k) => `
+      <div class="hs-hero">
+        <div class="hs-hero-box" style="background-image: url('${url(h.src)}'); background-position: center ${esc(h.pos || '50%')}"></div>
+        <div class="hs-ctl">
+          <span>第 ${k + 1} 张</span>
+          <select data-hpos="${k}">${HERO_POS.map(([val, n]) => `<option value="${val}"${val === (h.pos || '50%') ? ' selected' : ''}>${n}</option>`).join('')}</select>
+          ${k ? `<button data-hup="${k}">↑ 前移</button>` : ''}
+          <button class="danger" data-hdel="${k}">移除</button>
+        </div>
+      </div>`).join('') : '<p class="hint">还没有选择。至少选一张，否则首屏只显示深蓝底色。</p>';
+    $('#hWall').innerHTML = st.wall.length ? st.wall.map((w, k) => `
+      <div class="hs-w${k === 0 ? ' big' : ''}"><img src="${url(w.src)}"><span>${k + 1}</span>
+        <div class="hs-wb">${k ? `<button data-wup="${k}" title="前移">↑</button>` : ''}<button data-wdel="${k}" title="移除">×</button></div></div>`).join('') +
+      '<button id="hWallAuto" class="hs-auto">清空，恢复自动</button>'
+      : '<p class="hint">当前为自动：取最新 8 篇报道各一张现场照片。</p>';
+    v.querySelectorAll('[data-hpos]').forEach(el => el.onchange = () => { st.heroes[+el.dataset.hpos].pos = el.value; draw(); });
+    v.querySelectorAll('[data-hup]').forEach(el => el.onclick = () => { const k = +el.dataset.hup; [st.heroes[k - 1], st.heroes[k]] = [st.heroes[k], st.heroes[k - 1]]; draw(); });
+    v.querySelectorAll('[data-hdel]').forEach(el => el.onclick = () => { st.heroes.splice(+el.dataset.hdel, 1); draw(); });
+    v.querySelectorAll('[data-wup]').forEach(el => el.onclick = () => { const k = +el.dataset.wup; [st.wall[k - 1], st.wall[k]] = [st.wall[k], st.wall[k - 1]]; draw(); });
+    v.querySelectorAll('[data-wdel]').forEach(el => el.onclick = () => { st.wall.splice(+el.dataset.wdel, 1); draw(); });
+    const auto = $('#hWallAuto');
+    if (auto) auto.onclick = () => { st.wall = []; draw(); };
+    v.querySelectorAll('[data-pick]').forEach(el => {
+      const [kind, src] = [el.dataset.kind, el.dataset.pick];
+      const on = kind === 'hero' ? st.heroes.some(h => h.src === src) : st.wall.some(w => w.src === src);
+      el.classList.toggle('on', on);
+    });
+  };
+
+  $('#hPick').innerHTML = posts.map((p, pi) => `
+    <div class="hs-post">
+      <div class="meta">${esc(p.date)} · ${esc(p.title)}</div>
+      <div class="hs-thumbs">${p.images.map(im => `
+        <div class="hs-t"><img loading="lazy" src="${url(im)}">
+          <div><button data-kind="hero" data-pick="${esc(im)}" data-post="${pi}">大图</button><button data-kind="wall" data-pick="${esc(im)}" data-post="${pi}">照片墙</button></div>
+        </div>`).join('')}</div>
+    </div>`).join('');
+  $('#hPick').querySelectorAll('[data-pick]').forEach(el => el.onclick = () => {
+    const src = el.dataset.pick, p = posts[+el.dataset.post];
+    if (el.dataset.kind === 'hero') {
+      const i = st.heroes.findIndex(h => h.src === src);
+      if (i >= 0) st.heroes.splice(i, 1);
+      else {
+        if (st.heroes.length >= 3) return toast('首屏大图最多 3 张，先移除一张', true);
+        const r = ratioOf(src);
+        if (r && r < 1.2) toast('这是一张竖图，放在首屏会被裁掉很多，建议选横幅照片', true);
+        st.heroes.push({ src, pos: '50%' });
+      }
+    } else {
+      const i = st.wall.findIndex(w => w.src === src);
+      if (i >= 0) st.wall.splice(i, 1);
+      else {
+        if (st.wall.length >= 8) return toast('照片墙最多 8 张，先移除一张', true);
+        st.wall.push({ src, post: relUrl(p) });
+      }
+    }
+    draw();
+  });
+  draw();
+
+  $('#hSave').onclick = () => act($('#view'), async () => {
+    const data = { ...home, heroes: st.heroes, wall: st.wall };
+    await commitFiles(cfg(), [{ path: '_data/home.json', text: JSON.stringify(data, null, 1) + '\n' }], `首页设置：大图 ${st.heroes.length} 张、照片墙 ${st.wall.length ? st.wall.length + ' 张' : '自动'}（${me.name}）`);
+    return '已保存，约 1 分钟后首页更新';
   });
 }
 
