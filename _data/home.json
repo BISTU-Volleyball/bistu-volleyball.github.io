@@ -1,6 +1,17 @@
 {
  "heroes": [
-  {"src": "/assets/posts/2025-12-08-0c65c8/p1.jpg", "pos": "62%"}
+  {
+   "src": "/assets/posts/2025-12-08-0c65c8/p1.jpg",
+   "pos": "65%"
+  },
+  {
+   "src": "/assets/posts/2025-06-03-f9c28d/p1.jpg",
+   "pos": "65%"
+  },
+  {
+   "src": "/assets/posts/2026-03-07-675a54/p1.jpg",
+   "pos": "20%"
+  }
  ],
  "wall": []
 }
