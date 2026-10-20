@@ -1,0 +1,94 @@
+---
+layout: default
+title: 首页新版预览
+noindex: true
+home: true
+---
+<link rel="stylesheet" href="{{ '/assets/home.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+{% assign news = site.posts | where_exp: "p", "p.section != 'gallery'" %}
+{% assign lead = news | first %}
+
+<section class="h-hero" style="background-image: url('{{ site.home.hero | relative_url }}')">
+  <div class="h-hero-in">
+    <div class="h-kicker">BISTU VOLLEYBALL · 成立于 2025</div>
+    <h1>北京信息科技大学<br>教职工排球协会</h1>
+    <p>{{ site.home.slogan }}</p>
+    <div class="h-cta">
+      <a class="h-btn h-btn-main" href="{{ '/about/' | relative_url }}">了解协会</a>
+      <a class="h-btn h-btn-ghost" href="#latest">最新动态 ↓</a>
+    </div>
+  </div>
+</section>
+
+<section class="h-stats">
+  {% for s in site.home.stats %}<div><b>{{ s.num }}</b><span>{{ s.label }}</span></div>{% endfor %}
+</section>
+
+{% if site.notice %}
+<section class="h-block">
+  <div class="h-head"><span>EVENT</span><h2>近期活动</h2></div>
+  <a class="h-event" href="{{ site.notice.url }}">
+    {% if site.notice.image %}<img src="{{ site.notice.image | relative_url }}" alt="">{% endif %}
+    <div class="h-event-txt">
+      <h3>{{ site.notice.text }}</h3>
+      {% if site.notice.desc %}<p>{{ site.notice.desc }}</p>{% endif %}
+      <span class="h-btn h-btn-orange">{{ site.notice.button | default: '查看详情' }} →</span>
+    </div>
+  </a>
+</section>
+{% endif %}
+
+<section class="h-block" id="latest">
+  <div class="h-head"><span>LATEST</span><h2>最新动态</h2>
+    <nav>{% for s in site.sections %}{% unless s.key == 'gallery' %}<a href="{{ s.url | relative_url }}">{{ s.name }} ›</a>{% endunless %}{% endfor %}</nav></div>
+  {% if lead %}
+  <div class="h-news">
+    {% assign sec = site.sections | where: "key", lead.section | first %}
+    <a class="h-lead" href="{{ lead.url | relative_url }}">
+      <div class="h-lead-img"><img src="{{ lead.cover | relative_url }}" alt=""{% if lead.cover_pos %} style="object-position: 50% {{ lead.cover_pos }}"{% endif %}></div>
+      <div class="h-lead-txt">
+        <div class="h-meta"><span class="h-tag h-tag-{{ lead.section }}">{{ sec.name }}</span>{{ lead.date | date: '%Y年%-m月%-d日' }}</div>
+        <h3>{{ lead.title }}</h3>
+        <p>{{ lead.summary | truncate: 90 }}</p>
+      </div>
+    </a>
+    <div class="h-list">
+      {% for p in news offset: 1 limit: 4 %}{% assign sec = site.sections | where: "key", p.section | first %}
+      <a class="h-item" href="{{ p.url | relative_url }}">
+        <img src="{{ p.cover | relative_url }}" alt="" loading="lazy"{% if p.cover_pos %} style="object-position: 50% {{ p.cover_pos }}"{% endif %}>
+        <div>
+          <div class="h-meta"><span class="h-tag h-tag-{{ p.section }}">{{ sec.name }}</span>{{ p.date | date: '%Y-%m-%d' }}</div>
+          <h4>{{ p.title }}</h4>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</section>
+
+<section class="h-block">
+  <div class="h-head"><span>MOMENTS</span><h2>精彩瞬间</h2><nav><a href="{{ '/gallery/' | relative_url }}">风采相册 ›</a></nav></div>
+  <div class="h-wall">
+    {% assign n = 0 %}
+    {% for p in news %}{% if p.images.size > 2 and n < 8 %}
+      {% assign im = p.images[2] %}{% assign n = n | plus: 1 %}
+      <a href="{{ p.url | relative_url }}" title="{{ p.title }}"><img src="{{ im | relative_url }}" alt="" loading="lazy"><span>{{ p.title | truncate: 22 }}</span></a>
+    {% endif %}{% endfor %}
+  </div>
+</section>
+
+<section class="h-join">
+  <div class="h-join-in">
+    <div>
+      <div class="h-kicker">JOIN US</div>
+      <h2>加入我们</h2>
+      <p>无论你是萌新还是高手，这里都有你的位置！<br>不要“排”徊，加入我们，一起热血澎“排”、“排”山倒海！</p>
+    </div>
+    <ul>
+      <li><b>📍 活动地点</b>沙河校区体育馆</li>
+      <li><b>🏐 日常训练</b>专业教练每周指导，每个工作日都有训练赛</li>
+      <li><b>📮 联系人</b>张晨铭老师　<a href="mailto:zcmzcm93@163.com">zcmzcm93@163.com</a></li>
+    </ul>
+  </div>
+</section>

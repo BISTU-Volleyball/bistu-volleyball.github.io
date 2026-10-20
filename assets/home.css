@@ -1,0 +1,91 @@
+/* 首页（落地页式）：大图首屏 → 数字条 → 近期活动 → 最新动态 → 精彩瞬间 → 加入我们 */
+:root { --orange: #ef7e00; --deep: #0b2a66; }
+body { overflow-x: hidden; }
+
+/* 大图首屏 */
+.h-hero { width: 100vw; margin-left: calc(50% - 50vw); min-height: 520px; display: flex; align-items: flex-end; background: #0b2a66 center 35% / cover no-repeat; position: relative; }
+.h-hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8, 24, 64, .15) 0%, rgba(8, 24, 64, .35) 45%, rgba(8, 24, 64, .88) 100%); }
+.h-hero-in { position: relative; max-width: 1080px; width: 100%; margin: 0 auto; padding: 0 16px 56px; color: #fff; }
+.h-kicker { font-size: 13px; letter-spacing: .18em; font-weight: 700; color: #ffc46b; }
+.h-hero h1 { font-size: 46px; line-height: 1.25; margin: 10px 0 12px; letter-spacing: .04em; text-shadow: 0 2px 16px rgba(0, 0, 0, .3); }
+.h-hero p { font-size: 18px; margin: 0 0 24px; opacity: .92; }
+.h-cta { display: flex; gap: 12px; flex-wrap: wrap; }
+.h-btn { display: inline-block; padding: 11px 22px; border-radius: 999px; font-weight: 700; font-size: 15px; transition: transform .15s, box-shadow .15s; }
+.h-btn:hover { transform: translateY(-1px); }
+.h-btn-main { background: var(--orange); color: #fff; box-shadow: 0 8px 20px rgba(239, 126, 0, .35); }
+.h-btn-ghost { color: #fff; border: 1.5px solid rgba(255, 255, 255, .7); }
+.h-btn-orange { background: var(--orange); color: #fff; align-self: flex-start; }
+
+/* 数字条：压在首屏下沿 */
+.h-stats { position: relative; z-index: 2; margin: -34px auto 0; max-width: 960px; background: #fff; border-radius: 18px; box-shadow: 0 16px 40px rgba(20, 40, 100, .14); display: grid; grid-template-columns: repeat(4, 1fr); }
+.h-stats div { padding: 20px 10px; text-align: center; }
+.h-stats div + div { border-left: 1px solid var(--line); }
+.h-stats b { display: block; font-size: 26px; color: var(--accent); letter-spacing: .02em; }
+.h-stats span { font-size: 13px; color: var(--ink-2); }
+
+/* 板块标题 */
+.h-block { margin-top: 56px; }
+.h-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+.h-head span { font-size: 12px; font-weight: 800; letter-spacing: .2em; color: var(--orange); }
+.h-head h2 { margin: 0; font-size: 26px; }
+.h-head nav { margin-left: auto; display: flex; gap: 14px; font-size: 14px; }
+
+/* 近期活动 */
+.h-event { display: grid; grid-template-columns: 1.3fr 1fr; background: #fff; border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); color: var(--ink); }
+.h-event img { width: 100%; height: 100%; object-fit: cover; }
+.h-event-txt { padding: 28px; display: flex; flex-direction: column; gap: 12px; justify-content: center; background: linear-gradient(135deg, #fff 0%, #fff6ec 100%); }
+.h-event h3 { margin: 0; font-size: 22px; line-height: 1.4; }
+.h-event p { margin: 0; color: var(--ink-2); line-height: 1.8; }
+
+/* 最新动态：头条 + 列表 */
+.h-news { display: grid; grid-template-columns: 1.25fr 1fr; gap: 20px; }
+.h-lead { background: #fff; border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); color: var(--ink); display: flex; flex-direction: column; }
+.h-lead-img { aspect-ratio: 16 / 9; overflow: hidden; }
+.h-lead-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
+.h-lead:hover img { transform: scale(1.04); }
+.h-lead-txt { padding: 18px 20px 22px; }
+.h-lead h3 { margin: 8px 0; font-size: 20px; line-height: 1.45; }
+.h-lead p { margin: 0; color: var(--ink-2); line-height: 1.8; font-size: 15px; }
+.h-list { display: flex; flex-direction: column; gap: 12px; }
+.h-item { display: flex; gap: 14px; background: #fff; border-radius: 14px; padding: 10px; box-shadow: var(--shadow); color: var(--ink); align-items: center; transition: transform .15s; }
+.h-item:hover { transform: translateX(3px); }
+.h-item img { width: 128px; height: 84px; object-fit: cover; border-radius: 10px; flex: none; }
+.h-item h4 { margin: 6px 0 0; font-size: 15px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.h-meta { font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+.h-tag { padding: 1px 8px; border-radius: 6px; font-size: 12px; color: var(--accent); background: var(--accent-soft); }
+.h-tag-matches { color: #b45309; background: #fff1e0; }
+
+/* 精彩瞬间照片墙 */
+.h-wall { columns: 4 200px; column-gap: 10px; }
+.h-wall a { display: block; position: relative; margin-bottom: 10px; break-inside: avoid; border-radius: 12px; overflow: hidden; }
+.h-wall img { width: 100%; transition: transform .4s; }
+.h-wall a:hover img { transform: scale(1.05); }
+.h-wall span { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 10px 8px; font-size: 12px; color: #fff; background: linear-gradient(transparent, rgba(0, 0, 0, .65)); opacity: 0; transition: opacity .2s; }
+.h-wall a:hover span { opacity: 1; }
+
+/* 加入我们 */
+.h-join { width: 100vw; margin: 64px 0 -28px calc(50% - 50vw); background: linear-gradient(120deg, var(--deep) 0%, var(--accent) 100%); color: #fff; }
+.h-join-in { max-width: 1080px; margin: 0 auto; padding: 48px 16px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 32px; align-items: center; }
+.h-join h2 { font-size: 28px; margin: 8px 0 12px; }
+.h-join p { margin: 0; line-height: 1.9; opacity: .92; }
+.h-join ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.h-join li { background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .18); border-radius: 12px; padding: 12px 16px; line-height: 1.6; }
+.h-join li b { display: block; font-size: 13px; color: #ffc46b; }
+.h-join a { color: #fff; text-decoration: underline; }
+
+@media (max-width: 720px) {
+  .h-hero { min-height: 420px; }
+  .h-hero h1 { font-size: 30px; }
+  .h-hero p { font-size: 15px; }
+  .h-hero-in { padding-bottom: 52px; }
+  .h-stats { grid-template-columns: repeat(2, 1fr); margin-top: -28px; }
+  .h-stats div:nth-child(3) { border-left: 0; }
+  .h-stats div:nth-child(n+3) { border-top: 1px solid var(--line); }
+  .h-stats b { font-size: 21px; }
+  .h-block { margin-top: 40px; }
+  .h-head h2 { font-size: 22px; }
+  .h-event, .h-news, .h-join-in { grid-template-columns: 1fr; }
+  .h-item img { width: 104px; height: 72px; }
+  .h-wall { columns: 2; }
+  .h-wall span { opacity: 1; }
+}
