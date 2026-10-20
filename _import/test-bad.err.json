@@ -1,0 +1,6 @@
+{
+ "url": "https://mp.weixin.qq.com/s/thisLinkDoesNotExist123",
+ "section": "news",
+ "by": "测试员",
+ "error": "读不到文章内容（链接可能已失效、被删除，或需要在微信里验证）"
+}
