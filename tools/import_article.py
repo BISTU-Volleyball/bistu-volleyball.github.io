@@ -170,8 +170,8 @@ def build(url, section='news', requester=''):
             im.load()
         except Exception:
             continue  # SVG 等打不开的图，都是装饰
-        if idx < first_text and im.width / im.height >= 2:
-            continue  # 正文开始前的横幅（公众号页眉、栏目头图）
+        if idx < first_text and im.width / im.height >= 2 and im.width < 1000:
+            continue  # 正文开始前的小横幅（公众号页眉、栏目头图）；宽幅合影通常更大，保留
         if is_photo(im):
             kept.append((idx, im))
     os.makedirs(adir, exist_ok=True)
