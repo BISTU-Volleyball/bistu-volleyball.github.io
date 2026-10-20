@@ -121,6 +121,20 @@ def is_photo(im):
     return True
 
 
+def cut_summary(text, limit=84):
+    """摘要在标点处收尾，不要断在半句"""
+    t = re.sub(r'【(图|视频)\d+】', '', text).strip()
+    if len(t) <= limit:
+        return t
+    head = t[:limit]
+    for ch in '。！？；':
+        i = head.rfind(ch)
+        if i >= limit * 0.5:
+            return head[:i + 1]
+    i = max(head.rfind('，'), head.rfind('、'))
+    return (head[:i] if i >= limit * 0.5 else head) + '…'
+
+
 def rows_of(n, ratios):
     """连续 n 张照片怎么分行：宽幅单独一行，其余 2~3 张一行"""
     rows, run = [], []
@@ -234,7 +248,7 @@ def build(url, section='news', requester=''):
 
     landscape = [i for i, r in enumerate(ratios) if 1.2 <= r <= 2.2]
     cover = images[landscape[0]] if landscape else (images[0] if images else '')
-    summary = re.sub(r'【(图|视频)\d+】', '', ' '.join(b for b in blocks if not b.startswith(('###', '【'))))[:80]
+    summary = cut_summary(' '.join(b for b in blocks if not b.startswith(('###', '【'))))
     data = {'layout': 'post', 'title': meta['title'], 'date': f'{date} 12:00:00 +0800', 'section': section if section in SECTIONS else 'news',
             'author': meta['source'].replace('微信公众号', ''), 'summary': summary, 'cover': cover, 'images': images, 'ratios': ratios,
             'submitted': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), 'submitted_by': requester, 'source_url': url}

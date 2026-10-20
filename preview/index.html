@@ -72,9 +72,9 @@ home: true
   <div class="h-wall">
     {% assign n = 0 %}
     {% for p in news %}{% if n < 8 %}
-      {% comment %}每篇取一张横幅照片：跳过封面，也跳过方形的拼图{% endcomment %}
+      {% comment %}每篇取一张横幅照片：跳过开头的海报和封面，也跳过方形的拼图{% endcomment %}
       {% assign pick = '' %}
-      {% for im in p.images %}{% if pick == '' %}{% assign r = p.ratios[forloop.index0] %}
+      {% for im in p.images offset: 2 %}{% if pick == '' %}{% assign r = p.ratios[forloop.index0 | plus: 2] %}
         {% if r >= 1.2 and r <= 1.95 and im != p.cover %}{% assign pick = im %}{% endif %}
       {% endif %}{% endfor %}
       {% if pick != '' %}{% assign n = n | plus: 1 %}
