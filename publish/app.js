@@ -11,6 +11,7 @@ const BASE = root.dataset.base; // 网站根路径，一般是 "/"
 const SECTIONS = JSON.parse(root.dataset.sections);
 const LS = 'bv_pub';
 const MAX_VIDEO_MB = 50;
+const COVER_POS = [['15%', '偏上'], ['50%', '居中'], ['85%', '偏下']]; // 首页卡片封面的截取位置
 const MARK = { photos: '图', videos: '视频' }; // 正文里插图标记：【图1】【视频1】
 
 let me = JSON.parse(localStorage.getItem(LS) || 'null'); // { key, name }
@@ -54,7 +55,7 @@ function explain(e) {
 
 // ---------- 文章文件格式 ----------
 // front matter 每行一个 key: JSON 值（JSON 也是合法 YAML）；正文每段一行，包在 raw 里防止 Liquid 误解析
-const FM_KEYS = ['layout', 'title', 'date', 'section', 'author', 'summary', 'cover', 'images', 'ratios', 'videos', 'submitted', 'approved_by'];
+const FM_KEYS = ['layout', 'title', 'date', 'section', 'author', 'summary', 'cover', 'cover_pos', 'images', 'ratios', 'videos', 'submitted', 'approved_by'];
 
 function buildPost(p) {
   const paras = p.text.split('\n').map(s => s.trim().replace(/\{%\s*endraw\s*%\}/g, '')).filter(Boolean);
@@ -286,6 +287,9 @@ async function renderPending() {
           <label>栏目<select class="eSec">${SECTIONS.map(s => `<option value="${s.key}"${s.key === p.section ? ' selected' : ''}>${s.name}</option>`).join('')}</select></label>
           <label>日期<input class="eDate" type="date" value="${esc(p.date)}"></label>
         </div>
+        ${p.cover ? `<div class="cover-pick"><span>首页封面（卡片按这个范围截取）</span>
+          <div class="cover-box"><img class="eCoverImg" src="${url(p.cover)}" style="object-position: 50% ${esc(p.cover_pos || '50%')}"></div>
+          <select class="eCoverPos">${COVER_POS.map(([v, n]) => `<option value="${v}"${v === (p.cover_pos || '50%') ? ' selected' : ''}>${n}</option>`).join('')}</select></div>` : ''}
         <label>正文<textarea class="eText" rows="6">${esc(p.text)}</textarea></label>`
       : `<h3>${esc(p.title)}</h3><div class="meta">${esc(secName(p.section))} · ${esc(p.date)}</div><div class="pv-text">${p.text.split('\n').map(s => `<p>${esc(s)}</p>`).join('')}</div>`}
       ${preview(p)}
@@ -294,8 +298,11 @@ async function renderPending() {
   if (!isAdmin) return;
   v.querySelectorAll('.item').forEach(card => {
     const p = posts[+card.dataset.i];
+    const sel = card.querySelector('.eCoverPos');
+    if (sel) sel.onchange = () => { card.querySelector('.eCoverImg').style.objectPosition = `50% ${sel.value}`; };
     card.querySelector('[data-act="ok"]').onclick = () => act(card, async () => {
-      const q = { ...p, title: card.querySelector('.eTitle').value.trim(), section: card.querySelector('.eSec').value, date: card.querySelector('.eDate').value, text: card.querySelector('.eText').value, approved_by: me.name };
+      const pos = card.querySelector('.eCoverPos')?.value;
+      const q = { ...p, title: card.querySelector('.eTitle').value.trim(), section: card.querySelector('.eSec').value, date: card.querySelector('.eDate').value, text: card.querySelector('.eText').value, cover_pos: pos && pos !== '50%' ? pos : undefined, approved_by: me.name };
       if (!q.title || !/^\d{4}-\d{2}-\d{2}$/.test(q.date)) throw new Error('标题和日期不能为空');
       await commitFiles(cfg(), [{ path: `_posts/${p.slug}.md`, text: buildPost(q) }, { path: p.path, del: true }], `发布：${q.title}（审核：${me.name}）`);
       return '已发布，约 1 分钟后出现在网站上';
