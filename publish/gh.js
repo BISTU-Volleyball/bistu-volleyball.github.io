@@ -69,7 +69,7 @@ export async function commitFiles(cfg, files, message, onStep) {
   }
 }
 
-// 照片：按 EXIF 方向摆正，长边缩到 1600 的 JPEG
+// 照片：按 EXIF 方向摆正，长边缩到 1600 的 JPEG；返回 { blob, ratio }
 export async function shrinkImage(file) {
   let bmp;
   try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
@@ -78,5 +78,6 @@ export async function shrinkImage(file) {
   const c = document.createElement('canvas');
   c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
   c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
-  return new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.85));
+  const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.85));
+  return { blob, ratio: Math.round(c.width / c.height * 1000) / 1000 }; // ratio=宽/高，正文并排插图按比例等高排
 }

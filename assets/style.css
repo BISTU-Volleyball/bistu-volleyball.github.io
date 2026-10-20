@@ -79,9 +79,11 @@ img, video { max-width: 100%; display: block; }
 .post-body p { margin: 0 0 12px; text-indent: 2em; }
 /* 正文插图：【图N】所在段落变成一行图片，多张并排 */
 .post-body p:has(> .fig) { text-indent: 0; display: flex; gap: 8px; margin: 16px 0; }
-.post-body .fig { flex: 1; min-width: 0; display: block; }
+.post-body .fig { flex: 1 1 0; min-width: 0; display: block; }
 .post-body .fig img, .post-body .fig video { width: 100%; height: auto; border-radius: 10px; background: #000; }
-.post-body p:has(> .fig + .fig) .fig img { aspect-ratio: 4 / 3; object-fit: cover; }
+.post-body .fig:only-child img { width: auto; max-width: 100%; max-height: 75vh; margin: 0 auto; }
+.post-body .fig:only-child { flex: 1 1 0 !important; }
+.post-body h3 { font-size: 18px; margin: 24px 0 10px; color: var(--accent); }
 .post li { line-height: 1.9; }
 .videos figure, .photos { margin: 16px 0 0; }
 .videos video { width: 100%; border-radius: 10px; background: #000; }
@@ -101,7 +103,8 @@ img, video { max-width: 100%; display: block; }
 .timeline { list-style: none; counter-reset: t; padding: 0; margin: 0; border-left: 2px solid var(--accent-soft); }
 .timeline li { counter-increment: t; position: relative; padding: 0 0 18px 22px; }
 .timeline li::before { content: counter(t); position: absolute; left: -12px; top: 2px; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; line-height: 22px; text-align: center; }
-.timeline p { margin: 0; line-height: 1.9; color: #262b40; }
+.timeline p { margin: 0; line-height: 1.8; color: #262b40; }
+.tl-date { display: block; color: var(--accent); font-weight: 600; font-size: 14px; line-height: 22px; }
 .timeline .photos { margin-top: 10px; }
 .readmore { margin-left: 6px; white-space: nowrap; font-size: 14px; }
 .att { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }

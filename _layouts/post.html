@@ -4,7 +4,7 @@ layout: default
 {% assign sec = site.sections | where: "key", page.section | first %}
 {% comment %}
   正文里单独一行写【图3】/【视频1】，就在该位置显示第 3 张照片 / 第 1 个视频；
-  同一行写【图2】【图3】则并排显示。正文里没用到的照片和视频照旧排在文末。
+  同一行写【图2】【图3】则并排、按各自比例（front matter 的 ratios，宽/高）等高显示。正文里没用到的照片和视频照旧排在文末。
 {% endcomment %}
 {% assign body = content %}
 {% assign used_img = ',' %}
@@ -12,7 +12,8 @@ layout: default
 {% for im in page.images %}
   {% assign tag = '【图' | append: forloop.index | append: '】' %}
   {% if body contains tag %}
-    {% capture fig %}<a class="fig" href="{{ im | relative_url }}" target="_blank"><img loading="lazy" src="{{ im | relative_url }}" alt=""></a>{% endcapture %}
+    {% assign r = page.ratios[forloop.index0] | default: 1.333 %}
+    {% capture fig %}<a class="fig" style="flex: {{ r }} 1 0" href="{{ im | relative_url }}" target="_blank"><img loading="lazy" src="{{ im | relative_url }}" alt=""></a>{% endcapture %}
     {% assign body = body | replace: tag, fig %}
     {% assign used_img = used_img | append: forloop.index | append: ',' %}
   {% endif %}

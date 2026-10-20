@@ -54,7 +54,7 @@ function explain(e) {
 
 // ---------- 文章文件格式 ----------
 // front matter 每行一个 key: JSON 值（JSON 也是合法 YAML）；正文每段一行，包在 raw 里防止 Liquid 误解析
-const FM_KEYS = ['layout', 'title', 'date', 'section', 'author', 'summary', 'cover', 'images', 'videos', 'submitted', 'approved_by'];
+const FM_KEYS = ['layout', 'title', 'date', 'section', 'author', 'summary', 'cover', 'images', 'ratios', 'videos', 'submitted', 'approved_by'];
 
 function buildPost(p) {
   const paras = p.text.split('\n').map(s => s.trim().replace(/\{%\s*endraw\s*%\}/g, '')).filter(Boolean);
@@ -215,12 +215,13 @@ async function submit() {
   try {
     const slug = `${date}-${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8, '0').slice(0, 6)}`;
     const dir = `assets/posts/${slug}`;
-    const files = [], images = [], videos = [];
+    const files = [], images = [], ratios = [], videos = [];
     for (const [i, f] of draft.photos.entries()) {
       step(`处理照片 ${i + 1}/${draft.photos.length}`);
       const path = `${dir}/p${i + 1}.jpg`;
-      files.push({ path, blob: await shrinkImage(f) });
-      images.push('/' + path);
+      const { blob, ratio } = await shrinkImage(f);
+      files.push({ path, blob });
+      images.push('/' + path); ratios.push(ratio);
     }
     if (draft.videos.length) {
       step('加载视频压缩组件…');
@@ -243,7 +244,7 @@ async function submit() {
         videos.push(v);
       }
     }
-    const post = { title, date, section, text, author: me.name, cover: images[0] || videos[0]?.poster, images, videos, submitted: new Date().toISOString() };
+    const post = { title, date, section, text, author: me.name, cover: images[0] || videos[0]?.poster, images, ratios, videos, submitted: new Date().toISOString() };
     files.push({ path: `_pending/${slug}.md`, text: buildPost(post) });
     await commitFiles(cfg(), files, `投稿：${title}（${me.name}）`, step);
     [...draft.photos, ...draft.videos].forEach(f => URL.revokeObjectURL(f.preview));
