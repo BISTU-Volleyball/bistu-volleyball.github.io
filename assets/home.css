@@ -3,7 +3,7 @@
 body { overflow-x: hidden; }
 
 /* 大图首屏 */
-.h-hero { width: 100vw; margin-left: calc(50% - 50vw); min-height: 520px; display: flex; align-items: flex-end; background: #0b2a66 center 35% / cover no-repeat; position: relative; }
+.h-hero { width: 100vw; margin-left: calc(50% - 50vw); min-height: 460px; aspect-ratio: 21 / 9; max-height: 72vh; display: flex; align-items: flex-end; background: #0b2a66 center 62% / cover no-repeat; position: relative; }
 .h-hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8, 24, 64, .15) 0%, rgba(8, 24, 64, .35) 45%, rgba(8, 24, 64, .88) 100%); }
 .h-hero-in { position: relative; max-width: 1080px; width: 100%; margin: 0 auto; padding: 0 16px 56px; color: #fff; }
 .h-kicker { font-size: 13px; letter-spacing: .18em; font-weight: 700; color: #ffc46b; }
@@ -56,9 +56,10 @@ body { overflow-x: hidden; }
 .h-tag-matches { color: #b45309; background: #fff1e0; }
 
 /* 精彩瞬间照片墙 */
-.h-wall { columns: 4 200px; column-gap: 10px; }
-.h-wall a { display: block; position: relative; margin-bottom: 10px; break-inside: avoid; border-radius: 12px; overflow: hidden; }
-.h-wall img { width: 100%; transition: transform .4s; }
+.h-wall { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.h-wall a { display: block; position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 4 / 3; }
+.h-wall a:nth-child(1), .h-wall a:nth-child(6) { grid-column: span 2; grid-row: span 2; aspect-ratio: auto; }
+.h-wall img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
 .h-wall a:hover img { transform: scale(1.05); }
 .h-wall span { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 10px 8px; font-size: 12px; color: #fff; background: linear-gradient(transparent, rgba(0, 0, 0, .65)); opacity: 0; transition: opacity .2s; }
 .h-wall a:hover span { opacity: 1; }
@@ -86,6 +87,7 @@ body { overflow-x: hidden; }
   .h-head h2 { font-size: 22px; }
   .h-event, .h-news, .h-join-in { grid-template-columns: 1fr; }
   .h-item img { width: 104px; height: 72px; }
-  .h-wall { columns: 2; }
+  .h-wall { grid-template-columns: repeat(2, 1fr); }
+  .h-wall a:nth-child(1), .h-wall a:nth-child(6) { grid-column: span 2; grid-row: auto; aspect-ratio: 16 / 10; }
   .h-wall span { opacity: 1; }
 }

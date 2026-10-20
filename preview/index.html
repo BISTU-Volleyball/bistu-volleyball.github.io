@@ -73,7 +73,7 @@ home: true
     {% assign n = 0 %}
     {% for p in news %}{% if p.images.size > 2 and n < 8 %}
       {% assign im = p.images[2] %}{% assign n = n | plus: 1 %}
-      <a href="{{ p.url | relative_url }}" title="{{ p.title }}"><img src="{{ im | relative_url }}" alt="" loading="lazy"><span>{{ p.title | truncate: 22 }}</span></a>
+      <a href="{{ p.url | relative_url }}" title="{{ p.title }}"><img src="{{ im | relative_url }}" alt=""><span>{{ p.title | truncate: 22 }}</span></a>
     {% endif %}{% endfor %}
   </div>
 </section>
