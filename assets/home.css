@@ -15,6 +15,10 @@ body { overflow-x: hidden; }
 @keyframes h-zoom { from { transform: scale(1.04); } to { transform: scale(1.12); } }
 .h-hero::after { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(8, 24, 64, .1) 0%, rgba(8, 24, 64, .3) 45%, rgba(8, 24, 64, .9) 100%), linear-gradient(90deg, rgba(8, 24, 64, .45) 0%, transparent 55%); }
 .h-hero-in { position: relative; z-index: 2; max-width: 1080px; width: 100%; margin: 0 auto; padding: 0 16px 76px; color: #fff; }
+/* 首屏右侧的排协徽章：白边卡片，微微倾斜、缓慢上下浮动 */
+.h-badge { position: absolute; z-index: 2; right: max(16px, calc(50vw - 524px)); bottom: 110px; width: 300px; padding: 8px; background: rgba(255, 255, 255, .92); border-radius: 22px; box-shadow: 0 20px 50px rgba(0, 0, 0, .35); transform: rotate(4deg); animation: h-float 6s ease-in-out infinite; }
+.h-badge img { width: 100%; border-radius: 16px; display: block; }
+@keyframes h-float { 0%, 100% { transform: rotate(4deg) translateY(0); } 50% { transform: rotate(3deg) translateY(-10px); } }
 .h-kicker { font-size: 13px; letter-spacing: .18em; font-weight: 700; color: #ffc46b; }
 .h-hero h1 { font-size: 48px; line-height: 1.25; margin: 10px 0 12px; letter-spacing: .04em; text-shadow: 0 2px 18px rgba(0, 0, 0, .35); }
 .h-hero p { font-size: 18px; margin: 0 0 24px; opacity: .92; }
@@ -94,6 +98,8 @@ body { overflow-x: hidden; }
 
 @media (max-width: 720px) {
   .h-hero { min-height: 440px; aspect-ratio: auto; }
+  .h-badge { width: 132px; right: 14px; top: 18px; bottom: auto; padding: 5px; border-radius: 14px; }
+  .h-badge img { border-radius: 10px; }
   .h-hero h1 { font-size: 30px; }
   .h-hero p { font-size: 15px; }
   .h-hero-in { padding-bottom: 64px; }

@@ -19,8 +19,8 @@
 body { margin: 0; min-height: 100vh; display: flex; flex-direction: column;
   /* 淡底纹：四角柔和光晕（固定）+ 排球线稿图案 */
   background:
-    radial-gradient(900px 600px at -10% -10%, rgba(31, 95, 214, .10), transparent 60%) fixed,
-    radial-gradient(800px 600px at 110% 110%, rgba(239, 126, 0, .08), transparent 60%) fixed,
+    radial-gradient(900px 600px at -10% -10%, rgba(31, 95, 214, .14), transparent 60%) fixed,
+    radial-gradient(800px 600px at 110% 110%, rgba(239, 126, 0, .12), transparent 60%) fixed,
     url("img/bg-pattern.svg") 0 0 / 420px 420px repeat,
     var(--bg); }
 main { flex: 1; width: 100%; }
@@ -32,6 +32,8 @@ img, video { max-width: 100%; display: block; }
 .top { position: sticky; top: 0; z-index: 10; background: rgba(255, 255, 255, .9); backdrop-filter: saturate(1.6) blur(14px); border-bottom: 1px solid var(--line); }
 .top-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; flex-wrap: wrap; }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 17px; color: var(--ink); }
+.brand-logo { width: 34px; height: 34px; border-radius: 50%; box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px var(--accent-soft), 0 3px 8px rgba(31, 95, 214, .25); }
+.foot-logo { width: 40px; height: 40px; border-radius: 50%; display: inline-block; margin-bottom: 8px; opacity: .9; }
 .brand-short { display: none; }
 .nav { display: flex; gap: 4px; overflow-x: auto; }
 .nav a { padding: 8px 12px; border-radius: 10px; color: var(--ink-2); white-space: nowrap; font-size: 15px; }
