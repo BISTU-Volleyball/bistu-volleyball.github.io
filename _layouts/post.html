@@ -6,6 +6,13 @@ layout: default
   正文里单独一行写【图3】/【视频1】，就在该位置显示第 3 张照片 / 第 1 个视频；
   同一行写【图2】【图3】则并排、按各自比例（front matter 的 ratios，宽/高）等高显示。正文里没用到的照片和视频照旧排在文末。
 {% endcomment %}
+{% comment %}排球课堂（自制教学视频）：画面右上角叠 BISTU-Volleyball 水印，去掉下载/画中画，全屏改为整个容器全屏（这样水印跟着进全屏）{% endcomment %}
+{% assign v_attr = '' %}{% assign v_pre = '' %}{% assign v_post = '' %}
+{% if page.section == 'learn' %}
+  {% assign v_attr = ' controlslist="nodownload nofullscreen" disablepictureinpicture oncontextmenu="return false"' %}
+  {% assign v_pre = '<span class="wmv">' %}
+  {% capture v_post %}<span class="wm">BISTU-Volleyball</span><button class="wm-fs" type="button" title="全屏"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></span>{% endcapture %}
+{% endif %}
 {% assign body = content %}
 {% assign used_img = ',' %}
 {% assign used_vid = ',' %}
@@ -21,7 +28,7 @@ layout: default
 {% for v in page.videos %}
   {% assign tag = '【视频' | append: forloop.index | append: '】' %}
   {% if body contains tag %}
-    {% capture fig %}<span class="fig vfig"><video controls playsinline preload="none" src="{{ v.src | relative_url }}"{% if v.poster %} poster="{{ v.poster | relative_url }}"{% endif %}></video></span>{% endcapture %}
+    {% capture fig %}<span class="fig vfig">{{ v_pre }}<video controls playsinline preload="none"{{ v_attr }} src="{{ v.src | relative_url }}"{% if v.poster %} poster="{{ v.poster | relative_url }}"{% endif %}></video>{{ v_post }}</span>{% endcapture %}
     {% assign body = body | replace: tag, fig %}
     {% assign used_vid = used_vid | append: forloop.index | append: ',' %}
   {% endif %}
@@ -32,7 +39,7 @@ layout: default
   <div class="meta">{{ page.date | date: '%Y年%-m月%-d日' }}{% if page.author %} · {{ page.author }}{% endif %}{% if page.topic %}<span class="lt-topic">{{ page.topic }}</span>{% endif %}{% if page.level %}<span class="lt-level lt-{% if page.level == '入门' %}easy{% else %}hard{% endif %}">{{ page.level }}</span>{% endif %}</div>
   <div class="post-body">{{ body }}</div>
   {% capture rest_vid %}{% for v in page.videos %}{% assign key = ',' | append: forloop.index | append: ',' %}{% unless used_vid contains key %}
-    <figure><video controls playsinline preload="none" src="{{ v.src | relative_url }}"{% if v.poster %} poster="{{ v.poster | relative_url }}"{% endif %}></video>{% if v.caption %}<figcaption>{{ v.caption }}</figcaption>{% endif %}</figure>{% endunless %}{% endfor %}{% endcapture %}
+    <figure>{{ v_pre }}<video controls playsinline preload="none"{{ v_attr }} src="{{ v.src | relative_url }}"{% if v.poster %} poster="{{ v.poster | relative_url }}"{% endif %}></video>{{ v_post }}{% if v.caption %}<figcaption>{{ v.caption }}</figcaption>{% endif %}</figure>{% endunless %}{% endfor %}{% endcapture %}
   {% assign rest_vid = rest_vid | strip %}{% if rest_vid != '' %}<div class="videos">{{ rest_vid }}</div>{% endif %}
   {% capture rest_img %}{% for im in page.images %}{% assign key = ',' | append: forloop.index | append: ',' %}{% unless used_img contains key %}<a href="{{ im | relative_url }}" target="_blank"><img loading="lazy" src="{{ im | relative_url }}" alt=""></a>{% endunless %}{% endfor %}{% endcapture %}
   {% assign rest_img = rest_img | strip %}{% if rest_img != '' %}<div class="photos">{{ rest_img }}</div>{% endif %}
@@ -47,3 +54,19 @@ layout: default
     </div>{% endfor %}
   </div>{% endif %}
 </article>
+{% if page.section == 'learn' %}<script>
+document.querySelectorAll('.wm-fs').forEach(function (b) {
+  b.onclick = function () {
+    var w = b.parentNode, v = w.querySelector('video');
+    if (document.fullscreenElement || document.webkitFullscreenElement) return (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    if (w.requestFullscreen) w.requestFullscreen();
+    else if (w.webkitRequestFullscreen) w.webkitRequestFullscreen();
+    else if (v.webkitEnterFullscreen) v.webkitEnterFullscreen();  // iPhone 只能用系统播放器全屏（此时看不到水印）
+  };
+});
+// Firefox 不认 nofullscreen：用户点了自带全屏按钮时，改成整个容器全屏
+document.addEventListener('fullscreenchange', function () {
+  var f = document.fullscreenElement;
+  if (f && f.tagName === 'VIDEO' && f.parentNode.classList.contains('wmv')) f.parentNode.requestFullscreen().catch(function () {});
+});
+</script>{% endif %}
