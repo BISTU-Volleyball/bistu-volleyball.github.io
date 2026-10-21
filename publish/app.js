@@ -291,10 +291,13 @@ async function submit() {
         const tag = `视频 ${i + 1}/${draft.videos.length}`;
         const duration = await videoDuration(f);
         let blob;
+        // 排球课堂（自制教学视频）把 BISTU-Volleyball 水印烧进画面
+        const wm = section === 'learn' ? 'BISTU-Volleyball' : '';
         if (media.supported()) {
-          step(`压缩${tag}…`);
-          blob = (await media.compress(f, p => step(`压缩${tag}：${Math.round(p * 100)}%`)).catch(e => { throw new Error(`「${f.name}」${e.message}`); })).blob;
-        } else if (/\.mp4$/i.test(f.name) && f.size <= 20 * 1048576) blob = f;
+          step(`压缩${tag}${wm ? '并加水印' : ''}…`);
+          blob = (await media.compress(f, p => step(`压缩${tag}${wm ? '并加水印' : ''}：${Math.round(p * 100)}%`), wm).catch(e => { throw new Error(`「${f.name}」${e.message}`); })).blob;
+        } else if (wm) throw new Error('排球课堂的视频要在浏览器里加水印，这个浏览器不支持，请换用电脑上最新版的 Chrome 或 Edge');
+        else if (/\.mp4$/i.test(f.name) && f.size <= 20 * 1048576) blob = f;
         else throw new Error('这个浏览器不能压缩视频，请换用电脑上最新版的 Chrome 或 Edge');
         if (blob.size > MAX_VIDEO_MB * 1048576) throw new Error(`「${f.name}」压缩后仍超过 ${MAX_VIDEO_MB}MB，请剪短一些（建议 1 分钟以内）`);
         const path = `${dir}/v${i + 1}.mp4`;

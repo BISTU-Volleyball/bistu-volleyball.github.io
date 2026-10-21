@@ -12,7 +12,8 @@ const REASON = {
 
 // 压缩：长边不超过 1280、30 帧、H.264 约 0.65 Mbps；音频能直接复制就复制（手机视频一般是 AAC），否则转 AAC
 // 已符合要求的视频（≤720p、H.264、AAC/无声、≤30 帧、总码率≤1.2 Mbps、mp4/mov）只重新封装，不动画面，几秒完成
-export async function compress(file, onProgress) {
+// watermark：传入文字（如 BISTU-Volleyball）时把它烧进画面右下角，此时一律重新压缩（不走"只重新封装"的快捷路径）
+export async function compress(file, onProgress, watermark) {
   const input = new Input({ formats: ALL_FORMATS, source: new BlobSource(file) });
   const vt = await input.getPrimaryVideoTrack();
   if (!vt) throw new Error('文件里没有视频画面');
@@ -22,14 +23,36 @@ export async function compress(file, onProgress) {
   const fps = (await vt.computePacketStats(120).catch(() => null))?.averagePacketRate || 30;
   const dur = await input.computeDuration().catch(() => 0);
   const kbps = dur ? file.size * 8 / dur / 1000 : Infinity;
-  const skip = /\.(mp4|m4v|mov)$/i.test(file.name) && vt.codec === 'avc' && long <= 1280 && fps <= 31
+  const skip = !watermark && /\.(mp4|m4v|mov)$/i.test(file.name) && vt.codec === 'avc' && long <= 1280 && fps <= 31
     && (!at || at.codec === 'aac') && kbps <= 1200;
   const size = long > 1280 ? (landscape ? { width: 1280 } : { height: 1280 }) : {};
+  const video = { ...size, ...(fps > 31 ? { frameRate: 30 } : {}), codec: 'avc', bitrate: 650_000, forceTranscode: true };
+  if (watermark) {
+    // 自己按输出尺寸画每一帧：先画原画面（drawWithFit 会处理手机视频的旋转），再写水印
+    const k = Math.min(1, 1280 / long), even = x => Math.max(2, Math.round(x / 2) * 2);
+    const W = even(vt.displayWidth * k), H = even(vt.displayHeight * k);
+    const cv = new OffscreenCanvas(W, H), ctx = cv.getContext('2d');
+    const fs = Math.round(Math.min(W, H) * 0.045), pad = Math.round(fs * 0.8);
+    delete video.width; delete video.height;
+    Object.assign(video, {
+      processedWidth: W, processedHeight: H,
+      process: sample => {
+        sample.drawWithFit(ctx, { fit: 'fill' });
+        ctx.font = `bold ${fs}px system-ui, "Segoe UI", sans-serif`;
+        ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+        ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = fs * 0.25; ctx.shadowOffsetY = fs * 0.05;
+        ctx.fillStyle = 'rgba(255,255,255,.7)';
+        ctx.fillText(watermark, W - pad, H - pad);
+        ctx.shadowColor = 'transparent';
+        return cv;
+      },
+    });
+  }
   const output = new Output({ format: new Mp4OutputFormat({ fastStart: 'in-memory' }), target: new BufferTarget() });
   // 浏览器多用显卡编码器，同码率下效率不如 x264，故码率给低一些，体积与脚本版相当
   const conv = await Conversion.init({
     input, output, tracks: 'primary', showWarnings: false,
-    video: skip ? {} : { ...size, ...(fps > 31 ? { frameRate: 30 } : {}), codec: 'avc', bitrate: 650_000, forceTranscode: true },
+    video: skip ? {} : video,
     audio: skip ? {} : { codec: 'aac' },
   });
   const lostVideo = conv.discardedTracks.find(d => d.track.isVideoTrack());
