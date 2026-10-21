@@ -29,11 +29,21 @@ layout: default
 <article class="post">
   <div class="crumb">{% if sec %}<a href="{{ sec.url | relative_url }}">{{ sec.name }}</a> ›{% endif %}</div>
   <h1>{{ page.title }}</h1>
-  <div class="meta">{{ page.date | date: '%Y年%-m月%-d日' }}{% if page.author %} · {{ page.author }}{% endif %}</div>
+  <div class="meta">{{ page.date | date: '%Y年%-m月%-d日' }}{% if page.author %} · {{ page.author }}{% endif %}{% if page.topic %}<span class="lt-topic">{{ page.topic }}</span>{% endif %}{% if page.level %}<span class="lt-level lt-{% if page.level == '入门' %}easy{% else %}hard{% endif %}">{{ page.level }}</span>{% endif %}</div>
   <div class="post-body">{{ body }}</div>
   {% capture rest_vid %}{% for v in page.videos %}{% assign key = ',' | append: forloop.index | append: ',' %}{% unless used_vid contains key %}
     <figure><video controls playsinline preload="none" src="{{ v.src | relative_url }}"{% if v.poster %} poster="{{ v.poster | relative_url }}"{% endif %}></video>{% if v.caption %}<figcaption>{{ v.caption }}</figcaption>{% endif %}</figure>{% endunless %}{% endfor %}{% endcapture %}
   {% assign rest_vid = rest_vid | strip %}{% if rest_vid != '' %}<div class="videos">{{ rest_vid }}</div>{% endif %}
   {% capture rest_img %}{% for im in page.images %}{% assign key = ',' | append: forloop.index | append: ',' %}{% unless used_img contains key %}<a href="{{ im | relative_url }}" target="_blank"><img loading="lazy" src="{{ im | relative_url }}" alt=""></a>{% endunless %}{% endfor %}{% endcapture %}
   {% assign rest_img = rest_img | strip %}{% if rest_img != '' %}<div class="photos">{{ rest_img }}</div>{% endif %}
+  {% if page.attachments and page.attachments.size > 0 %}
+  <div class="attach">
+    <h3>📎 附件</h3>
+    {% for a in page.attachments %}{% assign ext = a.src | split: '.' | last | downcase %}
+    <div class="fileline">
+      <span class="fl-icon fl-{{ ext }}">{{ ext | upcase }}</span>
+      <div class="fl-main"><b>{{ a.name }}</b><span>{% if a.size > 1048576 %}{{ a.size | divided_by: 1048576.0 | round: 1 }} MB{% else %}{{ a.size | divided_by: 1024 }} KB{% endif %}{% if ext == 'pdf' %} · 可在线查看{% endif %}</span></div>
+      <a class="fl-btn" href="{{ a.src | relative_url }}" target="_blank"{% unless ext == 'pdf' %} download="{{ a.name }}"{% endunless %}>{% if ext == 'pdf' %}查看{% else %}下载{% endif %}</a>
+    </div>{% endfor %}
+  </div>{% endif %}
 </article>

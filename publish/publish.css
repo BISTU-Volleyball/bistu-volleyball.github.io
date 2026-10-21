@@ -91,3 +91,11 @@ code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
 .pub .hs-t button { flex: 1; padding: 2px 0; font-size: 12px; }
 .pub .hs-t button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
 @media (max-width: 720px) { .hs-hero-box { width: 100%; } .hs-t, .hs-t img { width: 100px; } .hs-t img { height: 68px; } }
+
+/* 附件 */
+.files { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.fileitem { display: flex; align-items: center; gap: 8px; font-size: 14px; background: #f6f8fd; border-radius: 8px; padding: 6px 10px; }
+.pub .fileitem button { margin-left: auto; padding: 0 8px; border: 0; background: none; font-size: 18px; color: var(--muted); }
+.pv-files { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.pv-files a { font-size: 14px; background: #f6f8fd; border-radius: 8px; padding: 6px 10px; }
+.pv-files span { color: var(--muted); font-size: 12px; margin-left: 6px; }

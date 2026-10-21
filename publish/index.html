@@ -4,7 +4,7 @@ title: 发布助手
 noindex: true
 ---
 <link rel="stylesheet" href="{{ '/publish/publish.css' | relative_url }}?v={{ site.time | date: '%s' }}">
-<div id="pub" class="pub" data-repo="{{ site.repo }}" data-base="{{ '/' | relative_url }}" data-sections='{{ site.sections | jsonify }}'>
+<div id="pub" class="pub" data-repo="{{ site.repo }}" data-base="{{ '/' | relative_url }}" data-sections='{{ site.sections | jsonify }}' data-learn='{{ site.learn | jsonify }}'>
   <p class="hint">加载中…</p>
 </div>
 <noscript><p class="hint">发布助手需要开启 JavaScript。</p></noscript>

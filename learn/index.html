@@ -1,0 +1,50 @@
+---
+layout: default
+title: 排球课堂
+list_section: learn
+---
+{% assign lessons = site.posts | where: "section", "learn" %}
+<section class="learn-head">
+  <div class="learn-kicker">LEARN · 排球课堂</div>
+  <h1>排球课堂</h1>
+  <p>{{ site.learn.intro }}</p>
+</section>
+
+<section class="learn-block">
+  <div class="learn-title"><h2>🎬 教学视频</h2>
+    <div class="chips"><button class="on" data-f="">全部</button>{% for t in site.learn.topics %}<button data-f="{{ t }}">{{ t }}</button>{% endfor %}</div>
+  </div>
+  {% if lessons.size == 0 %}<p class="empty">教练们正在录制第一批教学视频，敬请期待。</p>{% else %}
+  <div class="lessons">{% for p in lessons %}{% include lesson-card.html post=p %}{% endfor %}</div>
+  <p class="empty" id="noMatch" hidden>这个分类还没有内容。</p>{% endif %}
+</section>
+
+<section class="learn-block" id="files">
+  <div class="learn-title"><h2>📄 规则与资料</h2></div>
+  {% assign n = 0 %}
+  <div class="filelist">
+    {% for p in lessons %}{% for a in p.attachments %}{% assign n = n | plus: 1 %}
+      {% assign ext = a.src | split: '.' | last | downcase %}
+      <div class="fileline">
+        <span class="fl-icon fl-{{ ext }}">{{ ext | upcase }}</span>
+        <div class="fl-main"><b>{{ a.name }}</b>
+          <span>{{ p.date | date: '%Y-%m-%d' }} · {% if a.size > 1048576 %}{{ a.size | divided_by: 1048576.0 | round: 1 }} MB{% else %}{{ a.size | divided_by: 1024 }} KB{% endif %} · 见 <a href="{{ p.url | relative_url }}">{{ p.title | truncate: 24 }}</a></span></div>
+        <a class="fl-btn" href="{{ a.src | relative_url }}" target="_blank" download="{{ a.name }}">下载</a>
+      </div>
+    {% endfor %}{% endfor %}
+  </div>
+  {% if n == 0 %}<p class="empty">比赛规则等资料整理中。</p>{% endif %}
+</section>
+
+<script>
+// 按分类筛选视频
+(() => {
+  const chips = document.querySelectorAll('.chips button'), cards = document.querySelectorAll('.lesson'), none = document.getElementById('noMatch');
+  chips.forEach(c => c.onclick = () => {
+    chips.forEach(x => x.classList.toggle('on', x === c));
+    let shown = 0;
+    cards.forEach(card => { const ok = !c.dataset.f || card.dataset.topic === c.dataset.f; card.hidden = !ok; shown += ok; });
+    if (none) none.hidden = shown > 0;
+  });
+})();
+</script>

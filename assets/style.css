@@ -111,3 +111,48 @@ img, video { max-width: 100%; display: block; }
 .contact { margin: 12px 0 0; font-size: 16px; color: #262b40; }
 @media (max-width: 720px) { .stats { grid-template-columns: repeat(2, 1fr); } }
 
+
+/* 排球课堂 */
+.learn-head { max-width: 1080px; margin: 28px auto 0; padding: 30px 28px; border-radius: 22px; color: #fff; background: linear-gradient(120deg, #0b2a66, #1f5fd6 70%, #2f86f0); position: relative; overflow: hidden; }
+.learn-head::after { content: ""; position: absolute; right: -40px; top: -50px; width: 240px; height: 240px; background: url("img/ball-line.svg") center / contain no-repeat; opacity: .15; }
+.learn-kicker { font-size: 12px; letter-spacing: .2em; font-weight: 800; color: #ffc46b; }
+.learn-head h1 { margin: 8px 0; font-size: 30px; }
+.learn-head p { margin: 0; max-width: 620px; line-height: 1.8; opacity: .92; }
+.learn-block { margin-top: 32px; }
+.learn-title { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.learn-title h2 { margin: 0; font-size: 22px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chips button { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 5px 14px; font-size: 14px; cursor: pointer; color: var(--ink-2); }
+.chips button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.lessons { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+.lesson { display: flex; flex-direction: column; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); color: var(--ink); transition: transform .15s; }
+.lesson[hidden] { display: none; }
+.lesson:hover { transform: translateY(-3px); }
+.lesson-img { position: relative; aspect-ratio: 16 / 9; background: #e9edf7; }
+.lesson-img img { width: 100%; height: 100%; object-fit: cover; }
+.lesson-play { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(239, 126, 0, .92); color: #fff; display: grid; place-items: center; font-size: 17px; padding-left: 3px; box-shadow: 0 6px 16px rgba(0, 0, 0, .3); }
+.lesson-dur { position: absolute; right: 8px; bottom: 8px; background: rgba(0, 0, 0, .65); color: #fff; font-size: 12px; padding: 2px 7px; border-radius: 6px; }
+.lesson-body { padding: 12px 14px 14px; }
+.lesson-tags { display: flex; gap: 6px; }
+.lt-topic, .lt-level { font-size: 12px; padding: 1px 8px; border-radius: 6px; margin-left: 4px; }
+.lesson-tags .lt-topic, .lesson-tags .lt-level { margin-left: 0; }
+.lt-topic { background: var(--accent-soft); color: var(--accent); }
+.lt-easy { background: #e5f7ec; color: #12a150; }
+.lt-hard { background: #fff1e0; color: #b45309; }
+.lesson h3 { margin: 8px 0 4px; font-size: 16px; line-height: 1.45; }
+.lesson-meta { color: var(--muted); font-size: 13px; }
+.filelist, .attach { display: flex; flex-direction: column; gap: 10px; }
+.attach { margin-top: 22px; }
+.attach h3 { margin: 0 0 4px; font-size: 17px; }
+.fileline { display: flex; align-items: center; gap: 14px; background: #fff; border-radius: 14px; padding: 12px 14px; box-shadow: var(--shadow); }
+.attach .fileline { box-shadow: none; border: 1px solid var(--line); }
+.fl-icon { flex: none; width: 46px; height: 46px; border-radius: 10px; display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #fff; background: #8a90a6; }
+.fl-pdf { background: #dc2626; }
+.fl-doc, .fl-docx { background: #1f5fd6; }
+.fl-ppt, .fl-pptx { background: #ef7e00; }
+.fl-xls, .fl-xlsx { background: #12a150; }
+.fl-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fl-main b { font-size: 15px; word-break: break-all; }
+.fl-main span { font-size: 13px; color: var(--muted); }
+.fl-btn { flex: none; padding: 7px 16px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; }
+@media (max-width: 720px) { .learn-head { margin-top: 14px; padding: 22px 18px; } .learn-head h1 { font-size: 24px; } }

@@ -3,7 +3,8 @@ layout: default
 home: true
 ---
 <link rel="stylesheet" href="{{ '/assets/home.css' | relative_url }}?v={{ site.time | date: '%s' }}">
-{% assign news = site.posts | where_exp: "p", "p.section != 'gallery'" %}
+{% assign news = site.posts | where_exp: "p", "p.section != 'gallery'" | where_exp: "p", "p.section != 'learn'" %}
+{% assign lessons = site.posts | where: "section", "learn" %}
 {% assign lead = news | first %}
 {% assign heroes = site.data.home.heroes %}
 
@@ -68,6 +69,14 @@ home: true
   {% endif %}
 </section>
 
+{% comment %}排球课堂：满 3 个内容时首页自动出现这个板块{% endcomment %}
+{% if lessons.size >= 3 %}
+<section class="h-block reveal">
+  <div class="h-head"><span>LEARN</span><h2>排球课堂</h2><nav><a href="{{ '/learn/' | relative_url }}">全部教学 ›</a><a href="{{ '/learn/#files' | relative_url }}">规则与资料 ›</a></nav></div>
+  <div class="lessons">{% for p in lessons limit: 3 %}{% include lesson-card.html post=p %}{% endfor %}</div>
+</section>
+{% endif %}
+
 <section class="h-block reveal">
   <div class="h-head"><span>MOMENTS</span><h2>精彩瞬间</h2><nav><a href="{{ '/gallery/' | relative_url }}">风采相册 ›</a></nav></div>
   <div class="h-wall">
@@ -101,6 +110,7 @@ home: true
       <div class="h-kicker">JOIN US</div>
       <h2>加入我们</h2>
       <p>无论你是萌新还是高手，这里都有你的位置！<br>不要“排”徊，加入我们，一起热血澎“排”、“排”山倒海！</p>
+      <a class="h-learn-link" href="{{ '/learn/' | relative_url }}">🎬 新手入门？先看排球课堂 →</a>
     </div>
     <ul>
       <li><b>📍 活动地点</b>沙河校区体育馆</li>

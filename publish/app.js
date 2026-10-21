@@ -9,6 +9,12 @@ const root = document.getElementById('pub');
 const REPO = root.dataset.repo;
 const BASE = root.dataset.base; // 网站根路径，一般是 "/"
 const SECTIONS = JSON.parse(root.dataset.sections);
+const LEARN = JSON.parse(root.dataset.learn || '{}'); // 排球课堂的分类、难度（_config.yml 的 learn）
+const MAX_FILE_MB = 20;
+const learnSelects = (cls, p = {}) => `<label>分类<select class="${cls}Topic">${(LEARN.topics || []).map(t => `<option${t === p.topic ? ' selected' : ''}>${t}</option>`).join('')}</select></label>`
+  + `<label>难度<select class="${cls}Level">${(LEARN.levels || []).map(t => `<option${t === p.level ? ' selected' : ''}>${t}</option>`).join('')}</select></label>`;
+const fmtSize = n => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+const attachList = list => (list || []).length ? `<div class="pv-files">${list.map(a => `<a href="${url(a.src)}" target="_blank">📄 ${esc(a.name)} <span>${fmtSize(a.size || 0)}</span></a>`).join('')}</div>` : '';
 const LS = 'bv_pub';
 const MAX_VIDEO_MB = 50;
 const COVER_POS = [['15%', '偏上'], ['50%', '居中'], ['85%', '偏下']]; // 首页卡片封面的截取位置
@@ -19,7 +25,7 @@ let isAdmin = false;
 let roleCheck = 0; // 管理员检测的 HTTP 状态码，显示在「设置」里便于排查
 let tab = 'compose';
 let busy = false;
-const draft = { photos: [], videos: [] }; // 待提交的 File
+const draft = { photos: [], videos: [], files: [] }; // 待提交的 File
 
 // 邀请链接 #k=钥匙&n=名字：存下后立刻从地址栏抹掉
 {
@@ -55,7 +61,7 @@ function explain(e) {
 
 // ---------- 文章文件格式 ----------
 // front matter 每行一个 key: JSON 值（JSON 也是合法 YAML）；正文每段一行，包在 raw 里防止 Liquid 误解析
-const FM_KEYS = ['layout', 'title', 'date', 'section', 'author', 'summary', 'cover', 'cover_pos', 'images', 'ratios', 'videos', 'submitted', 'submitted_by', 'source_url', 'approved_by'];
+const FM_KEYS = ['layout', 'title', 'date', 'section', 'author', 'summary', 'cover', 'cover_pos', 'images', 'ratios', 'videos', 'attachments', 'topic', 'level', 'submitted', 'submitted_by', 'source_url', 'approved_by'];
 
 function buildPost(p) {
   const paras = p.text.split('\n').map(s => s.trim().replace(/\{%\s*endraw\s*%\}/g, '')).filter(Boolean);
@@ -192,6 +198,7 @@ function renderWrite() {
         <label>栏目<select id="cSec">${SECTIONS.map(s => `<option value="${s.key}">${s.name}</option>`).join('')}</select></label>
         <label>日期<input id="cDate" type="date" value="${today()}"></label>
       </div>
+      <div class="row" id="cLearn" hidden>${learnSelects('c')}</div>
       <label>正文<textarea id="cText" rows="9" placeholder="直接输入文字，每按一次回车就是新的一段"></textarea></label>
       <p class="hint">想让照片或视频出现在正文某个位置：把光标放到那里，点缩略图下方的「插入正文」（会写入【图1】这样的标记）。同一行写两个标记会并排显示；没插入的照片视频会排在文末。</p>
       <div class="media">
@@ -199,8 +206,12 @@ function renderWrite() {
         <div class="thumbs" id="tPhotos"></div>
       </div>
       <div class="media">
-        <div class="media-head"><b>视频</b><span class="hint">自动压缩，建议每段 1 分钟以内；长视频请发 B 站后把链接写进正文</span><label class="btn">＋ 添加视频<input id="cVideos" type="file" accept="video/*" multiple hidden></label></div>
+        <div class="media-head"><b>视频</b><span class="hint">自动压缩；比赛片段建议 1 分钟以内，教学视频建议一个动作一段、5 分钟以内</span><label class="btn">＋ 添加视频<input id="cVideos" type="file" accept="video/*" multiple hidden></label></div>
         <div class="thumbs" id="tVideos"></div>
+      </div>
+      <div class="media">
+        <div class="media-head"><b>附件</b><span class="hint">规则文件、讲义等（PDF、Word、PPT、Excel），每个不超过 ${MAX_FILE_MB}MB，读者可以在线查看或下载</span><label class="btn">＋ 添加附件<input id="cFiles" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" multiple hidden></label></div>
+        <div class="files" id="tFiles"></div>
       </div>
       <p class="hint">提交后需要管理员审核，通过后才会出现在网站上。</p>
       <button class="primary" id="cSubmit">提交审核</button>
@@ -209,6 +220,8 @@ function renderWrite() {
   const drawThumbs = () => {
     $('#tPhotos').innerHTML = draft.photos.map((f, i) => `<div class="thw"><div class="th"><img src="${f.preview}"><button data-rm="photos:${i}">×</button><span>${i === 0 ? '封面 · ' : ''}图${i + 1}</span></div><button class="ins" data-ins="photos:${i}">插入正文</button></div>`).join('');
     $('#tVideos').innerHTML = draft.videos.map((f, i) => `<div class="thw"><div class="th vid"><video src="${f.preview}" muted preload="metadata"></video><button data-rm="videos:${i}">×</button><span>视频${i + 1} · ${(f.size / 1048576).toFixed(0)}MB</span></div><button class="ins" data-ins="videos:${i}">插入正文</button></div>`).join('');
+    $('#tFiles').innerHTML = draft.files.map((f, i) => `<div class="fileitem">📄 ${esc(f.name)} <span class="hint">${fmtSize(f.size)}</span><button data-rmf="${i}">×</button></div>`).join('');
+    v.querySelectorAll('[data-rmf]').forEach(b => b.onclick = () => { draft.files.splice(+b.dataset.rmf, 1); drawThumbs(); });
     v.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => {
       const [k, i] = b.dataset.rm.split(':');
       URL.revokeObjectURL(draft[k][i].preview);
@@ -237,6 +250,15 @@ function renderWrite() {
   };
   $('#cPhotos').onchange = add('photos');
   $('#cVideos').onchange = add('videos');
+  $('#cFiles').onchange = e => {
+    for (const f of e.target.files) {
+      if (f.size > MAX_FILE_MB * 1048576) { toast(`「${f.name}」超过 ${MAX_FILE_MB}MB，请压缩后再传`, true); continue; }
+      draft.files.push(f);
+    }
+    e.target.value = ''; drawThumbs();
+  };
+  const sec = $('#cSec');
+  sec.onchange = () => { $('#cLearn').hidden = sec.value !== 'learn'; };
   drawThumbs();
   $('#cSubmit').onclick = submit;
 }
@@ -244,7 +266,7 @@ function renderWrite() {
 async function submit() {
   const title = $('#cTitle').value.trim(), text = $('#cText').value, date = $('#cDate').value, section = $('#cSec').value;
   if (!title) return toast('请填写标题', true);
-  if (!text.trim() && !draft.photos.length && !draft.videos.length) return toast('正文、照片、视频至少要有一样', true);
+  if (!text.trim() && !draft.photos.length && !draft.videos.length && !draft.files.length) return toast('正文、照片、视频、附件至少要有一样', true);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return toast('请选择日期', true);
   const btn = $('#cSubmit'), status = $('#cStatus');
   const step = s => { status.textContent = s; };
@@ -253,7 +275,7 @@ async function submit() {
   try {
     const slug = `${date}-${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8, '0').slice(0, 6)}`;
     const dir = `assets/posts/${slug}`;
-    const files = [], images = [], ratios = [], videos = [];
+    const files = [], images = [], ratios = [], videos = [], attachments = [];
     for (const [i, f] of draft.photos.entries()) {
       step(`处理照片 ${i + 1}/${draft.photos.length}`);
       const path = `${dir}/p${i + 1}.jpg`;
@@ -267,6 +289,7 @@ async function submit() {
       try { media = await import('./media.js' + VER); } catch { throw new Error('视频压缩组件加载失败，请刷新页面重试'); }
       for (const [i, f] of draft.videos.entries()) {
         const tag = `视频 ${i + 1}/${draft.videos.length}`;
+        const duration = await videoDuration(f);
         let blob;
         if (media.supported()) {
           step(`压缩${tag}…`);
@@ -277,16 +300,24 @@ async function submit() {
         const path = `${dir}/v${i + 1}.mp4`;
         files.push({ path, blob });
         const v = { src: '/' + path };
+        if (duration) v.duration = duration;
         const cover = await media.poster(blob).catch(() => null);
         if (cover) { files.push({ path: `${dir}/v${i + 1}.jpg`, blob: cover }); v.poster = `/${dir}/v${i + 1}.jpg`; }
         videos.push(v);
       }
     }
-    const post = { title, date, section, text, author: me.name, cover: images[0] || videos[0]?.poster, images, ratios, videos, submitted: new Date().toISOString() };
+    for (const [i, f] of draft.files.entries()) {
+      const ext = (f.name.match(/\.(\w+)$/) || [, 'bin'])[1].toLowerCase();
+      const path = `${dir}/f${i + 1}.${ext}`;
+      files.push({ path, blob: f });
+      attachments.push({ name: f.name, src: '/' + path, size: f.size });
+    }
+    const learn = section === 'learn' ? { topic: $('.cTopic').value, level: $('.cLevel').value } : {};
+    const post = { title, date, section, text, author: me.name, cover: images[0] || videos[0]?.poster, images, ratios, videos, attachments, ...learn, submitted: new Date().toISOString() };
     files.push({ path: `_pending/${slug}.md`, text: buildPost(post) });
     await commitFiles(cfg(), files, `投稿：${title}（${me.name}）`, step);
     [...draft.photos, ...draft.videos].forEach(f => URL.revokeObjectURL(f.preview));
-    draft.photos = []; draft.videos = [];
+    draft.photos = []; draft.videos = []; draft.files = [];
     toast('已提交，等待管理员审核');
     tab = 'pending';
     busy = false; render();
@@ -299,13 +330,26 @@ async function submit() {
   }
 }
 
+// 视频时长（秒），读不出来返回 0
+function videoDuration(file) {
+  return new Promise(ok => {
+    const v = document.createElement('video'), u = URL.createObjectURL(file);
+    const done = d => { URL.revokeObjectURL(u); ok(d); };
+    v.preload = 'metadata'; v.muted = true;
+    v.onloadedmetadata = () => done(isFinite(v.duration) ? Math.round(v.duration) : 0);
+    v.onerror = () => done(0);
+    setTimeout(() => done(0), 10000);
+    v.src = u;
+  });
+}
+
 // ---------- 预览（审核、已发布共用）----------
 function preview(p) {
   return `
     <div class="pv-media">
       ${p.videos.map(v => `<video controls preload="none" src="${url(v.src)}" ${v.poster ? `poster="${url(v.poster)}"` : ''}></video>`).join('')}
       ${p.images.map(im => `<a href="${url(im)}" target="_blank"><img loading="lazy" src="${url(im)}"></a>`).join('')}
-    </div>`;
+    </div>${attachList(p.attachments)}`;
 }
 
 // 转载请求队列：_import/*.json 正在抓取，*.err.json 失败
@@ -378,12 +422,13 @@ async function renderPending() {
           <label>栏目<select class="eSec">${SECTIONS.map(s => `<option value="${s.key}"${s.key === p.section ? ' selected' : ''}>${s.name}</option>`).join('')}</select></label>
           <label>日期<input class="eDate" type="date" value="${esc(p.date)}"></label>
         </div>
+        <div class="row eLearn"${p.section === 'learn' ? '' : ' hidden'}>${learnSelects('e', p)}</div>
         ${p.cover ? `<div class="cover-pick"><span>首页封面（卡片按这个范围截取）</span>
           <div class="cover-box"><img class="eCoverImg" src="${url(p.cover)}" style="object-position: 50% ${esc(p.cover_pos || '50%')}"></div>
           <select class="eCoverPos">${COVER_POS.map(([v, n]) => `<option value="${v}"${v === (p.cover_pos || '50%') ? ' selected' : ''}>${n}</option>`).join('')}</select></div>` : ''}
         <label>正文<textarea class="eText" rows="6">${esc(p.text)}</textarea></label>`
       : `<h3>${esc(p.title)}</h3><div class="meta">${esc(secName(p.section))} · ${esc(p.date)}</div><div class="pv-text">${p.text.split('\n').map(s => `<p>${esc(s)}</p>`).join('')}</div>`}
-      ${isAdmin ? '<div class="pv-media eMedia"></div>' : preview(p)}
+      ${isAdmin ? '<div class="pv-media eMedia"></div>' + attachList(p.attachments) : preview(p)}
       ${isAdmin ? '<div class="actions"><button class="primary" data-act="ok">通过并发布</button><button class="danger" data-act="no">退回（删除）</button></div>' : ''}
     </div>`).join('');
   if (!isAdmin) return;
@@ -412,12 +457,16 @@ async function renderPending() {
       });
     };
     drawMedia();
+    const secSel = card.querySelector('.eSec');
+    secSel.addEventListener('change', () => { card.querySelector('.eLearn').hidden = secSel.value !== 'learn'; });
     const sel = card.querySelector('.eCoverPos');
     if (sel) sel.onchange = () => { card.querySelector('.eCoverImg').style.objectPosition = `50% ${sel.value}`; };
     card.querySelector('[data-act="ok"]').onclick = () => act(card, async () => {
       const pos = card.querySelector('.eCoverPos')?.value;
       const q = { ...p, title: card.querySelector('.eTitle').value.trim(), section: card.querySelector('.eSec').value, date: card.querySelector('.eDate').value, text: card.querySelector('.eText').value, cover_pos: pos && pos !== '50%' ? pos : undefined, approved_by: me.name,
         images: st.images, ratios: st.ratios || undefined, cover: st.cover || undefined };
+      if (q.section === 'learn') { q.topic = card.querySelector('.eTopic').value; q.level = card.querySelector('.eLevel').value; }
+      else { delete q.topic; delete q.level; }
       if (!q.title || !/^\d{4}-\d{2}-\d{2}$/.test(q.date)) throw new Error('标题和日期不能为空');
       await commitFiles(cfg(), [{ path: `_posts/${p.slug}.md`, text: buildPost(q) }, { path: p.path, del: true }, ...st.removed.map(f => ({ path: f.replace(/^\//, ''), del: true }))], `发布：${q.title}（审核：${me.name}）`);
       return '已发布，约 1 分钟后出现在网站上';

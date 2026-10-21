@@ -50,6 +50,15 @@ sections:
   - key: gallery
     name: 风采相册
     url: /gallery/
+  - key: learn
+    name: 排球课堂
+    url: /learn/
+
+# 排球课堂的分类和难度（发布助手里选）
+learn:
+  intro: 协会教练录制的教学短视频，以及比赛规则等学习资料。一个动作一段视频，零基础也能跟着练。
+  topics: [基础动作, 战术配合, 规则裁判, 体能热身]
+  levels: [入门, 进阶]
 
 exclude:
   - README.md
