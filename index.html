@@ -42,7 +42,7 @@ home: true
 
 <section class="h-block reveal" id="latest">
   <div class="h-head"><span>LATEST</span><h2>最新动态</h2>
-    <nav>{% for s in site.sections %}{% unless s.key == 'gallery' %}<a href="{{ s.url | relative_url }}">{{ s.name }} ›</a>{% endunless %}{% endfor %}</nav></div>
+    <nav>{% for s in site.sections %}{% unless s.key == 'gallery' or s.key == 'learn' %}<a href="{{ s.url | relative_url }}">{{ s.name }} ›</a>{% endunless %}{% endfor %}</nav></div>
   {% if lead %}
   <div class="h-news">
     {% assign sec = site.sections | where: "key", lead.section | first %}
