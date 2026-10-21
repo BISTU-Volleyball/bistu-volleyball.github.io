@@ -99,3 +99,6 @@ code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
 .pv-files { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
 .pv-files a { font-size: 14px; background: #f6f8fd; border-radius: 8px; padding: 6px 10px; }
 .pv-files span { color: var(--muted); font-size: 12px; margin-left: 6px; }
+
+/* 带 hidden 的元素一律不显示（.row 等设置了 display 的元素会覆盖浏览器默认的 hidden） */
+.pub [hidden] { display: none !important; }
