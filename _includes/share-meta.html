@@ -1,0 +1,22 @@
+{% comment %}
+  分享信息：转发链接时，各平台读取这些标签生成卡片（标题、摘要、封面）。
+  文章用自己的封面和摘要；首页用首屏第一张大图；其他页面用排协标志。
+  图片必须是完整网址，由 _config.yml 的 url 拼出。
+{% endcomment %}
+{% assign share_title = page.title | default: site.title %}
+{% assign share_desc = page.summary | default: site.description | strip_html | strip_newlines | truncate: 100 %}
+{% if page.cover %}{% assign share_img = page.cover %}
+{% elsif page.home and site.data.home.heroes.size > 0 %}{% assign share_img = site.data.home.heroes[0].src %}
+{% else %}{% assign share_img = '/assets/img/logo-card.jpg' %}{% endif %}
+{% assign share_img = share_img | absolute_url %}
+<meta property="og:site_name" content="{{ site.title }}">
+<meta property="og:type" content="{% if page.layout == 'post' %}article{% else %}website{% endif %}">
+<meta property="og:title" content="{{ share_title | escape }}">
+<meta property="og:description" content="{{ share_desc | escape }}">
+<meta property="og:image" content="{{ share_img }}">
+<meta property="og:url" content="{{ page.url | absolute_url }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta itemprop="name" content="{{ share_title | escape }}">
+<meta itemprop="description" content="{{ share_desc | escape }}">
+<meta itemprop="image" content="{{ share_img }}">
+<link rel="canonical" href="{{ page.url | absolute_url }}">

@@ -7,9 +7,11 @@
 <meta name="description" content="{{ page.summary | default: site.description | strip_html | truncate: 120 }}">
 {% if page.noindex %}<meta name="robots" content="noindex">{% endif %}
 <link rel="stylesheet" href="{{ '/assets/style.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+{% include share-meta.html %}
 <link rel="icon" type="image/png" href="{{ '/assets/img/logo-emblem.png' | relative_url }}">
 </head>
 <body>
+<div hidden><img src="{{ share_img }}" alt=""></div>{% comment %}部分微信版本取正文第一张图做分享缩略图{% endcomment %}
 <header class="top">
   <div class="wrap top-in">
     <a class="brand" href="{{ '/' | relative_url }}"><img class="brand-logo" src="{{ '/assets/img/logo-emblem.png' | relative_url }}" alt="排协标志"><span class="brand-full">{{ site.title }}</span><span class="brand-short">{{ site.short_title }}</span></a>

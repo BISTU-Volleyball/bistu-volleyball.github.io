@@ -3,6 +3,8 @@ title: 北京信息科技大学教职工排球协会
 short_title: 信息科大教职工排协
 description: 北京信息科技大学教职工排球协会网站：新闻动态、赛事回顾、风采相册
 lang: zh-CN
+# 网站完整地址（分享卡片的图片需要完整网址）；以后换学校子域名时改这里
+url: https://bistu-volleyball.github.io
 timezone: Asia/Shanghai
 repo: BISTU-Volleyball/bistu-volleyball.github.io
 
