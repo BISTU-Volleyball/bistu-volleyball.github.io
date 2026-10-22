@@ -3,41 +3,36 @@ layout: default
 title: 关于协会
 summary: 北京信息科技大学教职工排球协会成立于2025年6月3日，隶属学校工会，现有会员200余名，每个工作日都有训练赛。
 ---
+{% comment %}页面内容在发布助手「🏛️ 关于协会」里编辑，存于 _data/about.json{% endcomment %}
+{% assign A = site.data.about %}
 <article class="post about">
-  <h1>北京信息科技大学教职工排球协会简介</h1>
+  <h1>{{ A.title }}</h1>
 
   <div class="post-body">
-    <p>排球协会是由学校一群热爱排球的教职工自愿组成的非营利性、群众性体育文化团体，隶属于北京信息科技大学工会委员会，致力于丰富教职工业余文化生活、推广排球运动、弘扬团队精神。</p>
-    <p>排球协会成立于2025年6月3日，目前协会会员已达到200余名；在体育部和校工会的指导、支持下，连续三年举办教职工气排球培训班，培训教职工累计百余人次；排协会员参与热情空前高涨，日常训练赛由原定的每周两次改为每个工作日都举行。</p>
+    {% for p in A.intro %}<p>{{ p }}</p>{% endfor %}
   </div>
 
-  <div class="stats">
-    <div><b>2025.6.3</b><span>正式成立</span></div>
-    <div><b>200余</b><span>名会员</span></div>
-    <div><b>百余人次</b><span>参加培训</span></div>
-    <div><b>每个工作日</b><span>日常训练赛</span></div>
-  </div>
+  {% if A.stats.size > 0 %}<div class="stats">
+    {% for s in A.stats %}<div><b>{{ s.num }}</b><span>{{ s.label }}</span></div>{% endfor %}
+  </div>{% endif %}
 
+  {% if A.timeline.size > 0 %}
   <h2>我们走过的路</h2>
   <ol class="timeline">
-    <li><span class="tl-date">2024年5月</span><p>协助组织学校第一期教职工气排球培训班，14位老师参训，为学校排球运动奠定基础。<a class="readmore" href="{{ '/posts/2024/0606-cf4493/' | relative_url }}">阅读报道 ›</a></p></li>
-    <li><span class="tl-date">2025年3月</span><p>组织20余名教师参加第二期教职工气排球兴趣培训班，教职工气排球技术有效提升。<a class="readmore" href="{{ '/posts/2025/0417-07ddfd/' | relative_url }}">阅读报道 ›</a></p></li>
-    <li><span class="tl-date">2025年3月</span><p>组织14名教师参加第二届“热血高校、燃爆校园”师生排球赛，催生了成立正式排球协会的集体诉求。<a class="readmore" href="{{ '/posts/2025/0321-b187d6/' | relative_url }}">阅读报道 ›</a></p></li>
-    <li><span class="tl-date">2025年6月3日</span><p>在校工会指导下召开教职工排球协会成立大会，排协正式注册成立。<a class="readmore" href="{{ '/posts/2025/0604-28471e/' | relative_url }}">阅读报道 ›</a></p></li>
-    <li><span class="tl-date">2025年11月</span><p>举办2025年“排绽风采，师生聚力”师生气排球赛，共83人参赛（教职工73人、学生10人）。<a class="readmore" href="{{ '/posts/2025/1208-0c65c8/' | relative_url }}">阅读报道 ›</a></p></li>
-    <li><span class="tl-date">2026年5月</span><p>协助组织学校第三期教职工气排球培训班，创新采用“基础班+提高班”双轨分层教学，基础班28人、提高班15人参训。<a class="readmore" href="{{ '/posts/2026/0511-d27f04/' | relative_url }}">阅读报道 ›</a></p></li>
-    <li><span class="tl-date">2026年5月12日</span><p>协助成立外国语学院排球队；6月16日，联合外国语学院举办首届教职工气排球友谊赛。<a class="readmore" href="{{ '/posts/2026/0622-8da174/' | relative_url }}">阅读报道 ›</a></p></li>
-    <li><span class="tl-date">2026年5月26日</span><p>联合体育部、光电学院、计算机学院共同举办第三届“热血高校 燃爆校园”师生气排球联谊赛。<a class="readmore" href="{{ '/posts/2026/0528-c56b89/' | relative_url }}">阅读报道 ›</a></p></li>
-    <li><span class="tl-date">2026年6月9日</span><p>联合理学院举办“理心悦动”气排球师生联谊赛。</p></li>
+    {% for t in A.timeline %}<li><span class="tl-date">{{ t.date }}</span><p>{{ t.text }}{% if t.link %}<a class="readmore" href="{{ t.link | relative_url }}">阅读报道 ›</a>{% endif %}</p></li>
+    {% endfor %}
   </ol>
+  {% endif %}
 
+  {% if A.training or A.location %}
   <h2>日常训练</h2>
   <div class="post-body">
-    <p>排协每周由专业教练指导训练（包含气排球的基础教学与对抗赛），定期组织并参与校际联赛、全校师生排球赛等大型活动。</p>
-    <p>📍 活动地点：沙河校区体育馆</p>
+    {% if A.training %}<p>{{ A.training }}</p>{% endif %}
+    {% if A.location %}<p>📍 活动地点：{{ A.location }}</p>{% endif %}
   </div>
+  {% endif %}
 
   <h2>加入我们</h2>
-  <div class="join">无论你是萌新还是高手，这里都有你的位置！<br>不要“排”徊，加入我们，一起热血澎“排”、“排”山倒海！</div>
-  <p class="contact">📮 联系人：张晨铭老师　<a href="mailto:zcmzcm93@163.com">zcmzcm93@163.com</a></p>
+  {% if A.join.size > 0 %}<div class="join">{{ A.join | join: "<br>" }}</div>{% endif %}
+  {% if A.contact.name %}<p class="contact">📮 联系人：{{ A.contact.name }}{% if A.contact.email %}　<a href="mailto:{{ A.contact.email }}">{{ A.contact.email }}</a>{% endif %}</p>{% endif %}
 </article>

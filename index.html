@@ -6,14 +6,15 @@ home: true
 {% assign news = site.posts | where_exp: "p", "p.section != 'gallery'" | where_exp: "p", "p.section != 'learn'" %}
 {% assign lessons = site.posts | where: "section", "learn" %}
 {% assign lead = news | first %}
-{% assign heroes = site.data.home.heroes %}
+{% assign H = site.data.home %}{% assign A = site.data.about %}
+{% assign heroes = H.heroes %}
 
 <section class="h-hero">
   {% for h in heroes %}<div class="h-slide{% if forloop.first %} on{% endif %}" style="background-image: url('{{ h.src | relative_url }}'); background-position: center {{ h.pos | default: '50%' }}"></div>{% endfor %}
   <div class="h-hero-in">
     <div class="h-kicker"><img class="h-emblem" src="{{ '/assets/img/logo-emblem.png' | relative_url }}" alt="排协标志">BISTU VOLLEYBALL · 成立于 2025</div>
     <h1>北京信息科技大学<br>教职工排球协会</h1>
-    <p>{{ site.home.slogan }}</p>
+    <p>{{ H.slogan }}</p>
     <div class="h-cta">
       <a class="h-btn h-btn-main" href="{{ '/about/' | relative_url }}">了解协会</a>
       <a class="h-btn h-btn-ghost" href="#latest">最新动态 ↓</a>
@@ -23,18 +24,18 @@ home: true
 </section>
 
 <section class="h-stats">
-  {% for s in site.home.stats %}<div class="h-stat reveal" style="--d: {{ forloop.index0 }}"><em>{{ s.icon }}</em><b>{{ s.num }}</b><span>{{ s.label }}</span></div>{% endfor %}
+  {% for s in H.stats %}<div class="h-stat reveal" style="--d: {{ forloop.index0 }}"><em>{{ s.icon }}</em><b>{{ s.num }}</b><span>{{ s.label }}</span></div>{% endfor %}
 </section>
 
-{% if site.notice %}
+{% assign nt = H.notice %}{% if nt and nt.show %}
 <section class="h-block reveal">
   <div class="h-head"><span>EVENT</span><h2>近期活动</h2></div>
-  <a class="h-event" href="{{ site.notice.url }}">
-    {% if site.notice.image %}<img src="{{ site.notice.image | relative_url }}" alt="">{% endif %}
+  <a class="h-event" href="{{ nt.url | default: '#' }}">
+    {% if nt.image %}<img src="{{ nt.image | relative_url }}" alt="">{% endif %}
     <div class="h-event-txt">
-      <h3>{{ site.notice.text }}</h3>
-      {% if site.notice.desc %}<p>{{ site.notice.desc }}</p>{% endif %}
-      <span class="h-btn h-btn-orange">{{ site.notice.button | default: '查看详情' }} →</span>
+      <h3>{{ nt.title }}</h3>
+      {% if nt.desc %}<p>{{ nt.desc }}</p>{% endif %}
+      <span class="h-btn h-btn-orange">{{ nt.button | default: '查看详情' }} →</span>
     </div>
   </a>
 </section>
@@ -109,13 +110,13 @@ home: true
       <img class="h-join-logo" src="{{ '/assets/img/logo-card.jpg' | relative_url }}" alt="北京信息科技大学教职工排球协会标志">
       <div class="h-kicker">JOIN US</div>
       <h2>加入我们</h2>
-      <p>无论你是萌新还是高手，这里都有你的位置！<br>不要“排”徊，加入我们，一起热血澎“排”、“排”山倒海！</p>
+      <p>{{ A.join | join: "<br>" }}</p>
       <a class="h-learn-link" href="{{ '/learn/' | relative_url }}">🎬 新手入门？先看排球课堂 →</a>
     </div>
     <ul>
-      <li><b>📍 活动地点</b>沙河校区体育馆</li>
+      {% if A.location %}<li><b>📍 活动地点</b>{{ A.location }}</li>{% endif %}
       <li><b>🏐 日常训练</b>专业教练每周指导，每个工作日都有训练赛</li>
-      <li><b>📮 联系人</b>张晨铭老师　<a href="mailto:zcmzcm93@163.com">zcmzcm93@163.com</a></li>
+      {% if A.contact.name %}<li><b>📮 联系人</b>{{ A.contact.name }}{% if A.contact.email %}　<a href="mailto:{{ A.contact.email }}">{{ A.contact.email }}</a>{% endif %}</li>{% endif %}
     </ul>
   </div>
 </section>
