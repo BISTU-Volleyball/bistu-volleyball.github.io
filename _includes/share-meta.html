@@ -3,7 +3,7 @@
   文章用自己的封面和摘要；首页用首屏第一张大图；其他页面用排协标志。
   图片必须是完整网址，由 _config.yml 的 url 拼出。
 {% endcomment %}
-{% assign share_title = page.title | default: site.title %}
+{% if page.layout == 'post' or page.title == nil %}{% assign share_title = page.title | default: site.title %}{% else %}{% assign share_title = page.title | append: ' · ' | append: site.title %}{% endif %}
 {% assign share_desc = page.summary | default: site.description | strip_html | strip_newlines | truncate: 100 %}
 {% if page.cover %}{% assign share_img = page.cover %}
 {% elsif page.home and site.data.home.heroes.size > 0 %}{% assign share_img = site.data.home.heroes[0].src %}
