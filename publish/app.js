@@ -106,7 +106,7 @@ const postUrl = p => url(`posts/${p.date.slice(0, 4)}/${p.date.slice(5, 7)}${p.d
 // ---------- 页面框架 ----------
 function render() {
   if (!me) return renderSetup();
-  const tabs = [['compose', '✍️ 投稿'], ['pending', isAdmin ? '🗂️ 审核' : '⏳ 待审核'], ...(isAdmin ? [['published', '📰 已发布'], ['home', '🏠 首页']] : []), ['settings', '⚙️ 设置']];
+  const tabs = [['compose', '✍️ 投稿'], ['pending', isAdmin ? '🗂️ 审核' : '⏳ 待审核'], ...(isAdmin ? [['published', '📰 已发布'], ['home', '🏠 首页'], ['about', '🏛️ 关于协会']] : []), ['settings', '⚙️ 设置']];
   root.innerHTML = `
     <div class="pub-head"><h1>发布助手</h1><span class="who">${esc(me.name || '未署名')}${isAdmin ? ' · <b>管理员</b>' : ''}</span></div>
     <div class="tabs">${tabs.map(([k, n]) => `<button data-tab="${k}" class="${tab === k ? 'on' : ''}">${n}</button>`).join('')}</div>
@@ -115,7 +115,7 @@ function render() {
     if (busy) return toast('正在提交，请稍候', true);
     tab = b.dataset.tab; render();
   });
-  ({ compose: renderCompose, pending: renderPending, published: renderPublished, home: renderHome, settings: renderSettings })[tab]();
+  ({ compose: renderCompose, pending: renderPending, published: renderPublished, home: renderHome, about: renderAbout, settings: renderSettings })[tab]();
 }
 
 function renderSetup(err, name = me?.name || '') {
@@ -500,7 +500,8 @@ async function renderPublished() {
   v.innerHTML = '<p class="hint">读取中…</p>';
   let posts;
   try { posts = await loadPosts('_posts'); } catch (e) { v.innerHTML = `<p class="err">读取失败：${esc(explain(e))}</p>`; return; }
-  if (!posts.length) { v.innerHTML = '<p class="empty">还没有已发布的内容。</p>'; return; }
+  const trash = `<div class="panel"><h3>🗑️ 最近删除 <span class="hint">误删、误退回的文章可以在这里一键恢复</span></h3><div id="trash"><button id="trashLoad">查看最近删除的内容</button></div></div>`;
+  if (!posts.length) { v.innerHTML = '<p class="empty">还没有已发布的内容。</p>' + trash; $('#trashLoad').onclick = () => renderTrash($('#trash')); return; }
   v.innerHTML = `<p class="hint">要修改已发布的文章：先「撤回到待审核」，在「审核」里改好再发布。</p>` + posts.map((p, i) => `
     <div class="panel item row-item" data-i="${i}">
       <div class="ri-main">
@@ -508,7 +509,8 @@ async function renderPublished() {
         <div class="meta">${esc(secName(p.section))} · ${esc(p.date)} · ${esc(p.author || '')}${p.approved_by ? ` · 审核 ${esc(p.approved_by)}` : ''}</div>
       </div>
       <div class="actions"><button data-act="back">撤回到待审核</button><button class="danger" data-act="del">删除</button></div>
-    </div>`).join('');
+    </div>`).join('') + trash;
+  $('#trashLoad').onclick = () => renderTrash($('#trash'));
   v.querySelectorAll('.item').forEach(card => {
     const p = posts[+card.dataset.i];
     card.querySelector('[data-act="back"]').onclick = () => act(card, async () => {
@@ -528,32 +530,67 @@ async function renderPublished() {
 }
 
 // ---------- 首页设置（管理员）----------
-// _data/home.json：heroes = 首屏大图 [{src, pos}]（多张轮播）；wall = 照片墙 [{src, post}]（空则自动取最新报道）
+// _data/home.json：slogan 口号；heroes 首屏大图 [{src, pos}]；stats 数字卡片 [{icon, num, label}]；
+// notice 近期活动 {show, title, desc, url, image, button}；wall 照片墙 [{src, post}]（空则自动取最新报道）
 const HERO_POS = [['20%', '偏上'], ['35%', '稍偏上'], ['50%', '居中'], ['65%', '稍偏下'], ['80%', '偏下']];
 const relUrl = p => `/posts/${p.date.slice(0, 4)}/${p.date.slice(5, 7)}${p.date.slice(8, 10)}-${p.slug.slice(11)}/`;
+const readData = async name => {
+  const d = await gh(`/contents/_data/${name}.json?ref=main`).catch(e => { if (e.status === 404) return null; throw e; });
+  return d ? JSON.parse(b64text(d.content)) : {};
+};
+const val = (root, sel) => root.querySelector(sel).value.trim();
 
 async function renderHome() {
   const v = $('#view');
   v.innerHTML = '<p class="hint">读取中…</p>';
   let home, posts;
-  try {
-    const d = await gh('/contents/_data/home.json?ref=main').catch(e => { if (e.status === 404) return null; throw e; });
-    home = d ? JSON.parse(b64text(d.content)) : {};
-    posts = await loadPosts('_posts');
-  } catch (e) { v.innerHTML = `<p class="err">读取失败：${esc(explain(e))}</p>`; return; }
-  const st = { heroes: [...(home.heroes || [])], wall: [...(home.wall || [])] };
+  try { [home, posts] = await Promise.all([readData('home'), loadPosts('_posts')]); }
+  catch (e) { v.innerHTML = `<p class="err">读取失败：${esc(explain(e))}</p>`; return; }
+  const nt = home.notice || {};
+  const stats = [...(home.stats || [])];
+  while (stats.length < 4) stats.push({ icon: '', num: '', label: '' });
+  const st = { heroes: [...(home.heroes || [])], wall: [...(home.wall || [])], noticeImg: nt.image || '', noticeFile: null };
   const ratioOf = src => { for (const p of posts) { const i = p.images.indexOf(src); if (i >= 0 && p.ratios) return p.ratios[i]; } return 0; };
 
   v.innerHTML = `
+    <p class="hint">这里改的是首页的各个板块。改完点最下面的「保存首页设置」，约 1 分钟后生效。</p>
     <div class="panel">
-      <h3>首屏大图 <span class="hint">1~3 张，多张时每 6 秒轮播；建议选人多、面朝镜头、光线亮的横幅合影</span></h3>
+      <h3>① 首屏口号</h3>
+      <label>口号（显示在协会名称下面）<input id="hSlogan" value="${esc(home.slogan || '')}"></label>
+    </div>
+    <div class="panel">
+      <h3>② 首屏大图 <span class="hint">1~3 张，多张时每 6 秒轮播；在最下面的照片里点「大图」添加</span></h3>
       <div id="hHeroes" class="hs-list"></div>
     </div>
     <div class="panel">
-      <h3>照片墙 <span class="hint">最多 8 张，第 1 张显示为大图、第 4 张为宽图；一张都不选时自动用最新 8 篇报道的照片</span></h3>
-      <div id="hWall" class="hs-wall"></div>
+      <h3>③ 数字卡片 <span class="hint">首屏下方的 4 张卡片；图标可以填一个表情符号，留空的卡片不显示</span></h3>
+      ${stats.slice(0, 4).map((s, k) => `
+      <div class="row hs-stat" data-s="${k}">
+        <label style="flex:0 0 70px">图标<input class="sIcon" value="${esc(s.icon || '')}"></label>
+        <label>数字<input class="sNum" value="${esc(s.num || '')}" placeholder="例如：200余"></label>
+        <label>说明<input class="sLabel" value="${esc(s.label || '')}" placeholder="例如：名会员"></label>
+      </div>`).join('')}
     </div>
     <div class="panel">
+      <h3>④ 近期活动</h3>
+      <label class="hs-check"><input type="checkbox" id="nShow"${nt.show ? ' checked' : ''}> 在首页显示「近期活动」</label>
+      <label>标题<input id="nTitle" value="${esc(nt.title || '')}" placeholder="例如：2026 教职工气排球团体赛 · 精彩视频评选"></label>
+      <label>说明<textarea id="nDesc" rows="3">${esc(nt.desc || '')}</textarea></label>
+      <div class="row">
+        <label>按钮文字<input id="nBtn" value="${esc(nt.button || '')}" placeholder="例如：去投票、查看详情"></label>
+        <label>点击后打开的网址<input id="nUrl" value="${esc(nt.url || '')}" placeholder="https://..."></label>
+      </div>
+      <div class="hs-nimg">
+        <div class="hs-nimg-box" id="nImgBox"></div>
+        <div><b>活动图片</b><p class="hint">上传一张横幅图片，或在最下面的照片里点「活动图」。</p>
+          <label class="btn">上传图片<input type="file" id="nFile" accept="image/*" hidden></label> <button id="nImgDel">不用图片</button></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>⑤ 照片墙 <span class="hint">最多 8 张，第 1 张为大图、第 4 张为宽图；不选时自动用最新 8 篇报道的照片</span></h3>
+      <div id="hWall" class="hs-wall"></div>
+    </div>
+    <div class="panel savebar">
       <button class="primary" id="hSave">保存首页设置</button> <span class="hint">保存后约 1 分钟生效</span>
     </div>
     <div class="panel">
@@ -561,13 +598,17 @@ async function renderHome() {
       <div id="hPick"></div>
     </div>`;
 
+  const drawNotice = () => {
+    const src = st.noticeFile ? st.noticeFile.preview : (st.noticeImg ? url(st.noticeImg) : '');
+    $('#nImgBox').innerHTML = src ? `<img src="${src}">` : '<span class="hint">未设置图片</span>';
+  };
   const draw = () => {
     $('#hHeroes').innerHTML = st.heroes.length ? st.heroes.map((h, k) => `
       <div class="hs-hero">
         <div class="hs-hero-box" style="background-image: url('${url(h.src)}'); background-position: center ${esc(h.pos || '50%')}"></div>
         <div class="hs-ctl">
           <span>第 ${k + 1} 张</span>
-          <select data-hpos="${k}">${HERO_POS.map(([val, n]) => `<option value="${val}"${val === (h.pos || '50%') ? ' selected' : ''}>${n}</option>`).join('')}</select>
+          <select data-hpos="${k}">${HERO_POS.map(([x, n]) => `<option value="${x}"${x === (h.pos || '50%') ? ' selected' : ''}>${n}</option>`).join('')}</select>
           ${k ? `<button data-hup="${k}">↑ 前移</button>` : ''}
           <button class="danger" data-hdel="${k}">移除</button>
         </div>
@@ -586,9 +627,10 @@ async function renderHome() {
     if (auto) auto.onclick = () => { st.wall = []; draw(); };
     v.querySelectorAll('[data-pick]').forEach(el => {
       const [kind, src] = [el.dataset.kind, el.dataset.pick];
-      const on = kind === 'hero' ? st.heroes.some(h => h.src === src) : st.wall.some(w => w.src === src);
+      const on = kind === 'hero' ? st.heroes.some(h => h.src === src) : kind === 'wall' ? st.wall.some(w => w.src === src) : !st.noticeFile && st.noticeImg === src;
       el.classList.toggle('on', on);
     });
+    drawNotice();
   };
 
   $('#hPick').innerHTML = posts.map((p, pi) => `
@@ -596,12 +638,12 @@ async function renderHome() {
       <div class="meta">${esc(p.date)} · ${esc(p.title)}</div>
       <div class="hs-thumbs">${p.images.map(im => `
         <div class="hs-t"><img loading="lazy" src="${url(im)}">
-          <div><button data-kind="hero" data-pick="${esc(im)}" data-post="${pi}">大图</button><button data-kind="wall" data-pick="${esc(im)}" data-post="${pi}">照片墙</button></div>
+          <div><button data-kind="hero" data-pick="${esc(im)}" data-post="${pi}">大图</button><button data-kind="wall" data-pick="${esc(im)}" data-post="${pi}">照片墙</button><button data-kind="notice" data-pick="${esc(im)}" data-post="${pi}">活动图</button></div>
         </div>`).join('')}</div>
     </div>`).join('');
   $('#hPick').querySelectorAll('[data-pick]').forEach(el => el.onclick = () => {
-    const src = el.dataset.pick, p = posts[+el.dataset.post];
-    if (el.dataset.kind === 'hero') {
+    const src = el.dataset.pick, p = posts[+el.dataset.post], kind = el.dataset.kind;
+    if (kind === 'hero') {
       const i = st.heroes.findIndex(h => h.src === src);
       if (i >= 0) st.heroes.splice(i, 1);
       else {
@@ -610,22 +652,150 @@ async function renderHome() {
         if (r && r < 1.2) toast('这是一张竖图，放在首屏会被裁掉很多，建议选横幅照片', true);
         st.heroes.push({ src, pos: '50%' });
       }
-    } else {
+    } else if (kind === 'wall') {
       const i = st.wall.findIndex(w => w.src === src);
       if (i >= 0) st.wall.splice(i, 1);
       else {
         if (st.wall.length >= 8) return toast('照片墙最多 8 张，先移除一张', true);
         st.wall.push({ src, post: relUrl(p) });
       }
-    }
+    } else { st.noticeFile = null; st.noticeImg = src; }
     draw();
   });
+  $('#nFile').onchange = e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    f.preview = URL.createObjectURL(f);
+    st.noticeFile = f; e.target.value = ''; draw();
+  };
+  $('#nImgDel').onclick = () => { st.noticeFile = null; st.noticeImg = ''; draw(); };
   draw();
 
   $('#hSave').onclick = () => act($('#view'), async () => {
-    const data = { ...home, heroes: st.heroes, wall: st.wall };
-    await commitFiles(cfg(), [{ path: '_data/home.json', text: JSON.stringify(data, null, 1) + '\n' }], `首页设置：大图 ${st.heroes.length} 张、照片墙 ${st.wall.length ? st.wall.length + ' 张' : '自动'}（${me.name}）`);
+    const files = [];
+    if (st.noticeFile) {
+      const { blob } = await shrinkImage(st.noticeFile);
+      const path = `assets/img/notice-${Date.now()}.jpg`;
+      files.push({ path, blob });
+      st.noticeImg = '/' + path;
+    }
+    const data = {
+      ...home,
+      slogan: val(v, '#hSlogan'),
+      heroes: st.heroes,
+      stats: [...v.querySelectorAll('.hs-stat')].map(r => ({ icon: val(r, '.sIcon'), num: val(r, '.sNum'), label: val(r, '.sLabel') })).filter(s => s.num || s.label),
+      notice: { show: $('#nShow').checked, title: val(v, '#nTitle'), desc: val(v, '#nDesc'), url: val(v, '#nUrl'), image: st.noticeImg, button: val(v, '#nBtn') },
+      wall: st.wall,
+    };
+    if (data.notice.show && !data.notice.title) throw new Error('近期活动要在首页显示，请填写标题');
+    files.push({ path: '_data/home.json', text: JSON.stringify(data, null, 1) + '\n' });
+    await commitFiles(cfg(), files, `首页设置（${me.name}）`);
     return '已保存，约 1 分钟后首页更新';
+  });
+}
+
+// ---------- 关于协会（管理员）----------
+// _data/about.json：title、intro[段落]、stats[{num,label}]、timeline[{date,text,link}]、training、location、join[行]、contact{name,email}
+async function renderAbout() {
+  const v = $('#view');
+  v.innerHTML = '<p class="hint">读取中…</p>';
+  let A, posts;
+  try { [A, posts] = await Promise.all([readData('about'), loadPosts('_posts')]); }
+  catch (e) { v.innerHTML = `<p class="err">读取失败：${esc(explain(e))}</p>`; return; }
+  const stats = [...(A.stats || [])];
+  while (stats.length < 4) stats.push({ num: '', label: '' });
+  const tl = (A.timeline || []).map(t => ({ ...t }));
+  const opts = sel => `<option value="">（不关联报道）</option>` + posts.map(p => `<option value="${relUrl(p)}"${relUrl(p) === sel ? ' selected' : ''}>${esc(p.date)} ${esc(p.title.slice(0, 30))}</option>`).join('');
+
+  v.innerHTML = `
+    <p class="hint">这里改的是「关于协会」页面，首页底部「加入我们」的地点和联系人也取自这里。改完点最下面的「保存」，约 1 分钟后生效。</p>
+    <div class="panel">
+      <h3>协会简介</h3>
+      <label>标题<input id="aTitle" value="${esc(A.title || '')}"></label>
+      <label>简介（每按一次回车就是新的一段）<textarea id="aIntro" rows="6">${esc((A.intro || []).join('\n'))}</textarea></label>
+      <p class="hint">数字卡片（留空的不显示）：</p>
+      ${stats.slice(0, 4).map(s => `<div class="row a-stat"><label>数字<input class="sNum" value="${esc(s.num || '')}"></label><label>说明<input class="sLabel" value="${esc(s.label || '')}"></label></div>`).join('')}
+    </div>
+    <div class="panel">
+      <h3>我们走过的路 <span class="hint">按时间先后排列；可以关联一篇已发布的报道，页面上会出现「阅读报道」链接</span></h3>
+      <div id="aTl"></div>
+      <button id="aTlAdd">＋ 添加一条</button>
+    </div>
+    <div class="panel">
+      <h3>日常训练与加入我们</h3>
+      <label>日常训练<textarea id="aTrain" rows="3">${esc(A.training || '')}</textarea></label>
+      <label>活动地点<input id="aLoc" value="${esc(A.location || '')}"></label>
+      <label>加入我们（每行一句）<textarea id="aJoin" rows="3">${esc((A.join || []).join('\n'))}</textarea></label>
+      <div class="row"><label>联系人<input id="aCName" value="${esc(A.contact?.name || '')}"></label><label>联系邮箱<input id="aCMail" value="${esc(A.contact?.email || '')}"></label></div>
+    </div>
+    <div class="panel savebar"><button class="primary" id="aSave">保存「关于协会」</button> <span class="hint">保存后约 1 分钟生效</span></div>`;
+
+  const readTl = () => [...v.querySelectorAll('.tl-row')].forEach((r, k) => { tl[k] = { date: val(r, '.tDate'), text: val(r, '.tText'), link: r.querySelector('.tLink').value }; });
+  const drawTl = () => {
+    $('#aTl').innerHTML = tl.map((t, k) => `
+      <div class="tl-row">
+        <div class="tl-no">${k + 1}</div>
+        <div class="tl-fields">
+          <div class="row"><label style="flex:0 0 150px">时间<input class="tDate" value="${esc(t.date || '')}" placeholder="例如：2026年11月"></label>
+            <label>关联报道<select class="tLink">${opts(t.link || '')}</select></label></div>
+          <label>内容<textarea class="tText" rows="2">${esc(t.text || '')}</textarea></label>
+        </div>
+        <div class="tl-ops">${k ? `<button data-tup="${k}" title="上移">↑</button>` : ''}${k < tl.length - 1 ? `<button data-tdown="${k}" title="下移">↓</button>` : ''}<button class="danger" data-tdel="${k}" title="删除">×</button></div>
+      </div>`).join('') || '<p class="hint">还没有内容。</p>';
+    v.querySelectorAll('[data-tup]').forEach(b => b.onclick = () => { readTl(); const k = +b.dataset.tup; [tl[k - 1], tl[k]] = [tl[k], tl[k - 1]]; drawTl(); });
+    v.querySelectorAll('[data-tdown]').forEach(b => b.onclick = () => { readTl(); const k = +b.dataset.tdown; [tl[k + 1], tl[k]] = [tl[k], tl[k + 1]]; drawTl(); });
+    v.querySelectorAll('[data-tdel]').forEach(b => b.onclick = () => { readTl(); if (confirm('删除这一条？')) { tl.splice(+b.dataset.tdel, 1); drawTl(); } });
+  };
+  $('#aTlAdd').onclick = () => { readTl(); tl.push({ date: '', text: '' }); drawTl(); v.querySelector('.tl-row:last-child .tDate').focus(); };
+  drawTl();
+
+  $('#aSave').onclick = () => act($('#view'), async () => {
+    readTl();
+    const lines = s => s.split('\n').map(x => x.trim()).filter(Boolean);
+    const data = {
+      ...A,
+      title: val(v, '#aTitle'),
+      intro: lines($('#aIntro').value),
+      stats: [...v.querySelectorAll('.a-stat')].map(r => ({ num: val(r, '.sNum'), label: val(r, '.sLabel') })).filter(s => s.num || s.label),
+      timeline: tl.filter(t => t.date || t.text).map(t => t.link ? t : { date: t.date, text: t.text }),
+      training: $('#aTrain').value.trim(),
+      location: val(v, '#aLoc'),
+      join: lines($('#aJoin').value),
+      contact: { name: val(v, '#aCName'), email: val(v, '#aCMail') },
+    };
+    await commitFiles(cfg(), [{ path: '_data/about.json', text: JSON.stringify(data, null, 1) + '\n' }], `关于协会（${me.name}）`);
+    return '已保存，约 1 分钟后页面更新';
+  });
+}
+
+// ---------- 最近删除（回收站，管理员）----------
+// 从 GitHub 提交记录里找「删除：」「退回：」，一键把当时删掉的文件原样放回去
+async function renderTrash(box) {
+  box.innerHTML = '<p class="hint">读取中…</p>';
+  let list;
+  try {
+    const commits = (await gh('/commits?per_page=60')).filter(c => /^(删除|退回)：/.test(c.commit.message)).slice(0, 15);
+    list = await Promise.all(commits.map(async c => {
+      const d = await gh(`/commits/${c.sha}`);
+      return { sha: c.sha, msg: c.commit.message.split('\n')[0], when: c.commit.author.date, files: (d.files || []).filter(f => f.status === 'removed').map(f => ({ path: f.filename, sha: f.sha })) };
+    }));
+  } catch (e) { box.innerHTML = `<p class="err">读取失败：${esc(explain(e))}</p>`; return; }
+  list = list.filter(x => x.files.some(f => f.path.endsWith('.md')));
+  if (!list.length) { box.innerHTML = '<p class="hint">最近没有删除或退回的内容。</p>'; return; }
+  box.innerHTML = list.map((x, i) => `
+    <div class="trash-item" data-t="${i}">
+      <div><b>${esc(x.msg)}</b><div class="meta">${new Date(x.when).toLocaleString('zh-CN')} · ${x.files.length} 个文件</div></div>
+      <button data-restore="${i}">恢复</button>
+    </div>`).join('');
+  box.querySelectorAll('[data-restore]').forEach(b => b.onclick = () => {
+    const x = list[+b.dataset.restore];
+    const md = x.files.find(f => f.path.endsWith('.md'));
+    const where = md.path.startsWith('_pending/') ? '待审核' : '网站上';
+    if (!confirm(`恢复「${x.msg.replace(/^(删除|退回)：/, '')}」？会放回${where}。`)) return;
+    act(b.closest('.trash-item'), async () => {
+      await commitFiles(cfg(), x.files.map(f => ({ path: f.path, sha: f.sha })), `恢复：${x.msg.replace(/^(删除|退回)：/, '')}（${me.name}）`);
+      return `已恢复，放回${where}`;
+    });
   });
 }
 

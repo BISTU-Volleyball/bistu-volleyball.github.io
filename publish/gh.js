@@ -39,7 +39,7 @@ export async function speedTest(cfg, mb = 1) {
 }
 
 // 把多个文件作为一次提交推到仓库（只触发一次 Pages 构建）。并发冲突时重试
-// files 每项：{ path, blob } 二进制文件 / { path, text } 文本文件 / { path, del: true } 删除
+// files 每项：{ path, blob } 二进制文件 / { path, text } 文本文件 / { path, sha } 仓库已有内容 / { path, del: true } 删除
 export async function commitFiles(cfg, files, message, onStep) {
   const gh = ghClient(cfg);
   const items = [];
@@ -47,6 +47,7 @@ export async function commitFiles(cfg, files, message, onStep) {
   for (const f of files) {
     if (f.del) items.push({ path: f.path, mode: '100644', type: 'blob', sha: null });
     else if (f.text !== undefined) items.push({ path: f.path, mode: '100644', type: 'blob', content: f.text });
+    else if (f.sha) items.push({ path: f.path, mode: '100644', type: 'blob', sha: f.sha }); // 仓库里已有的内容（恢复删除时用）
     else {
       onStep && onStep(`上传文件 ${bins.indexOf(f) + 1}/${bins.length}`);
       const { sha } = await gh('/git/blobs', { method: 'POST', body: JSON.stringify({ content: await toBase64(f.blob), encoding: 'base64' }) });
