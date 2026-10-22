@@ -777,7 +777,8 @@ async function renderTrash(box) {
     const commits = (await gh('/commits?per_page=60')).filter(c => /^(删除|退回)：/.test(c.commit.message)).slice(0, 15);
     list = await Promise.all(commits.map(async c => {
       const d = await gh(`/commits/${c.sha}`);
-      return { sha: c.sha, msg: c.commit.message.split('\n')[0], when: c.commit.author.date, files: (d.files || []).filter(f => f.status === 'removed').map(f => ({ path: f.filename, sha: f.sha })) };
+      const msg = c.commit.message.split('\n')[0];
+      return { sha: c.sha, msg, title: msg.replace(/^(删除|退回)：/, '').replace(/（[^（）]*）$/, ''), when: c.commit.author.date, files: (d.files || []).filter(f => f.status === 'removed').map(f => ({ path: f.filename, sha: f.sha })) };
     }));
   } catch (e) { box.innerHTML = `<p class="err">读取失败：${esc(explain(e))}</p>`; return; }
   list = list.filter(x => x.files.some(f => f.path.endsWith('.md')));
@@ -791,9 +792,9 @@ async function renderTrash(box) {
     const x = list[+b.dataset.restore];
     const md = x.files.find(f => f.path.endsWith('.md'));
     const where = md.path.startsWith('_pending/') ? '待审核' : '网站上';
-    if (!confirm(`恢复「${x.msg.replace(/^(删除|退回)：/, '')}」？会放回${where}。`)) return;
+    if (!confirm(`恢复「${x.title}」？会放回${where}。`)) return;
     act(b.closest('.trash-item'), async () => {
-      await commitFiles(cfg(), x.files.map(f => ({ path: f.path, sha: f.sha })), `恢复：${x.msg.replace(/^(删除|退回)：/, '')}（${me.name}）`);
+      await commitFiles(cfg(), x.files.map(f => ({ path: f.path, sha: f.sha })), `恢复：${x.title}（${me.name}）`);
       return `已恢复，放回${where}`;
     });
   });
