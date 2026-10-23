@@ -58,7 +58,8 @@ img, video { max-width: 100%; display: block; }
 .card { background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); color: var(--ink); transition: transform .15s; }
 .card:hover { transform: translateY(-2px); }
 .card-img { position: relative; aspect-ratio: 16 / 9; background: #e9edf7; }
-.card-img img { width: 100%; height: 100%; object-fit: cover; }
+.card-img { overflow: hidden; }
+.card-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .card-ph { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 40px; opacity: .5; }
 .badge { position: absolute; right: 8px; bottom: 8px; background: rgba(0, 0, 0, .6); color: #fff; font-size: 12px; padding: 3px 8px; border-radius: 6px; }
 .card-body { padding: 12px 14px 14px; }
@@ -136,8 +137,8 @@ img, video { max-width: 100%; display: block; }
 .lesson { display: flex; flex-direction: column; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); color: var(--ink); transition: transform .15s; }
 .lesson[hidden] { display: none; }
 .lesson:hover { transform: translateY(-3px); }
-.lesson-img { position: relative; aspect-ratio: 16 / 9; background: #e9edf7; }
-.lesson-img img { width: 100%; height: 100%; object-fit: cover; }
+.lesson-img { position: relative; aspect-ratio: 16 / 9; background: #e9edf7; overflow: hidden; }
+.lesson-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .lesson-play { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(239, 126, 0, .92); color: #fff; display: grid; place-items: center; font-size: 17px; padding-left: 3px; box-shadow: 0 6px 16px rgba(0, 0, 0, .3); }
 .lesson-dur { position: absolute; right: 8px; bottom: 8px; background: rgba(0, 0, 0, .65); color: #fff; font-size: 12px; padding: 2px 7px; border-radius: 6px; }
 .lesson-body { padding: 12px 14px 14px; }
