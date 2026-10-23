@@ -38,10 +38,10 @@ if __name__ == '__main__':
     pattern = '\n'.join([
         '<svg xmlns="http://www.w3.org/2000/svg" width="420" height="420" viewBox="0 0 420 420">',
         '  <!-- 全站淡底纹：排球线稿 + 点阵，透明度很低。由 tools/make_ball_svg.py 生成 -->',
-        f'  <g opacity=".15"><g transform="translate(25 35) rotate(-18 45 45) scale(.9)">{b1}</g>'
+        f'  <g opacity=".09"><g transform="translate(25 35) rotate(-18 45 45) scale(.9)">{b1}</g>'
         f'<g transform="translate(272 262) rotate(24 30 30) scale(.6)">{b2}</g></g>',
-        f'  <g fill="#1f5fd6" opacity=".16">{DOTS}</g>',
-        '  <path d="M150 210 h40 M170 190 v40" fill="none" stroke="#ef7e00" stroke-width="1.8" stroke-linecap="round" opacity=".2"/>',
+        f'  <g fill="#1f5fd6" opacity=".12">{DOTS}</g>',
+        '  <path d="M150 210 h40 M170 190 v40" fill="none" stroke="#ef7e00" stroke-width="1.8" stroke-linecap="round" opacity=".15"/>',
         '</svg>', ''])
     with open(os.path.join(img, 'bg-pattern.svg'), 'w', encoding='utf-8', newline='\n') as f:
         f.write(pattern)
