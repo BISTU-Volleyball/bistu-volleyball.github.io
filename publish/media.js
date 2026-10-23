@@ -13,14 +13,28 @@ const REASON = {
 // 两档画质：
 //   standard（新闻、赛事）：长边 ≤1280、30 帧、H.264 约 0.65 Mbps；已是 ≤720p、≤1.2 Mbps 的 H.264 只重新封装
 //   high（排球课堂、风采相册）：长边 ≤1920（1080p）、30 帧、约 2.5 Mbps（每分钟约 19MB）；已是 ≤1080p 的 H.264 且文件不超过上限的，直接用原片
+//     视频长到 2.5 Mbps 装不进上限时（约 3 分钟以上），改成 720p 并按时长分码率（降分辨率而不是饿码率，人脸才不糊）；
+//     720p 也分不到 HIGH_MIN_BPS 时（约 7 分半以上）报错，请剪短或改贴视频号链接
 // 音频能直接复制就复制（手机视频一般是 AAC），否则转 AAC
 // watermark：传入文字（如 BISTU-Volleyball）时把它烧进画面右下角，此时一律重新压缩（不走"直接用原片"的快捷路径）
 export const PROFILES = {
   standard: { long: 1280, bitrate: 650_000, skipKbps: 1200, maxMB: 50 },
   high: { long: 1920, bitrate: 2_500_000, skipKbps: Infinity, maxMB: 70 },
 };
+const HIGH_FIT_MB = 66, HIGH_LONG_SMALL = 1280, HIGH_MIN_BPS = 1_000_000;
+// 按时长给高清档定分辨率和码率：留 10% 给浏览器编码器超码，再扣掉约 160 kbps 音频
+function fitHigh(P, dur) {
+  if (!dur) return P;
+  const bps = HIGH_FIT_MB * 1048576 * 8 * 0.9 / dur - 160_000;
+  if (bps >= P.bitrate) return P;
+  if (bps < HIGH_MIN_BPS) {
+    const max = HIGH_FIT_MB * 1048576 * 8 * 0.9 / (HIGH_MIN_BPS + 160_000);
+    throw new Error(`时长 ${Math.floor(dur / 60)} 分 ${Math.round(dur % 60)} 秒，超过高清视频上限（约 ${Math.floor(max / 60)} 分 ${Math.round(max % 60)} 秒），请剪短，或发到视频号后贴链接`);
+  }
+  return { ...P, long: HIGH_LONG_SMALL, bitrate: Math.round(bps) };
+}
 export async function compress(file, onProgress, watermark, quality = 'standard') {
-  const P = PROFILES[quality] || PROFILES.standard;
+  let P = PROFILES[quality] || PROFILES.standard;
   const input = new Input({ formats: ALL_FORMATS, source: new BlobSource(file) });
   const vt = await input.getPrimaryVideoTrack();
   if (!vt) throw new Error('文件里没有视频画面');
@@ -33,6 +47,7 @@ export async function compress(file, onProgress, watermark, quality = 'standard'
   const skip = !watermark && /\.(mp4|m4v|mov)$/i.test(file.name) && vt.codec === 'avc' && long <= P.long
     && (quality === 'high' ? fps <= 61 && file.size <= P.maxMB * 1048576 : fps <= 31 && kbps <= P.skipKbps)
     && (!at || at.codec === 'aac');
+  if (quality === 'high' && !skip) P = fitHigh(P, dur);
   const size = long > P.long ? (landscape ? { width: P.long } : { height: P.long }) : {};
   const video = { ...size, ...(fps > 31 ? { frameRate: 30 } : {}), codec: 'avc', bitrate: P.bitrate, forceTranscode: true };
   if (watermark) {
