@@ -119,3 +119,5 @@ code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
 #aTlAdd { margin-top: 10px; }
 .trash-item { display: flex; align-items: center; gap: 12px; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 8px 0; }
 .trash-item .meta { margin-top: 2px; }
+
+.sph-ask { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: #fff7e8; border: 1px solid #ffd9a0; font-size: 14px; line-height: 1.7; color: #7a4a00; }

@@ -1,6 +1,6 @@
 {% comment %}排球课堂的视频卡片：封面、时长、分类和难度标签、标题、教练{% endcomment %}
 {% assign p = include.post %}{% assign v = p.videos | first %}
-<a class="lesson" href="{% if p.channels %}{{ p.channels }}" target="_blank" rel="noopener{% else %}{{ p.url | relative_url }}{% endif %}" data-topic="{{ p.topic }}">
+<a class="lesson" href="{% include post-href.html post=p %}" data-topic="{{ p.topic }}">
   <div class="lesson-img">
     {% if p.cover %}<img loading="lazy" src="{{ p.cover | relative_url }}" alt=""{% if p.cover_pos %} style="object-position: 50% {{ p.cover_pos }}"{% endif %}>{% else %}<div class="card-ph">🏐</div>{% endif %}
     {% if v or p.channels %}<span class="lesson-play">▶</span>{% endif %}{% if p.channels %}<span class="lesson-dur lesson-sph">视频号</span>{% endif %}

@@ -163,6 +163,22 @@ function renderCompose() {
   (composeMode === 'import' ? renderImport : renderWrite)();
 }
 
+// 视频号链接：weixin.qq.com/sph/<编号> 或 channels.weixin.qq.com/...?id=<编号>，统一成短链接
+const SPH_OK = /^https:\/\/(weixin\.qq\.com\/sph\/[A-Za-z0-9_-]+|channels\.weixin\.qq\.com\/.*[?&]id=[A-Za-z0-9_-]+)/;
+const normSph = u => { const m = u.match(/sph\/([A-Za-z0-9_-]+)|[?&]id=([A-Za-z0-9_-]+)/); return m ? `https://weixin.qq.com/sph/${m[1] || m[2]}` : u; };
+async function submitChannelsOnly(link, title) {
+  const btn = $('#cSubmit');
+  busy = true; btn.disabled = true;
+  try {
+    const id = `${Date.now()}-${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).slice(0, 4)}`;
+    const req = { url: normSph(link), section: 'learn', by: me.name, at: new Date().toISOString(), title, topic: $('.cTopic').value, level: $('.cLevel').value };
+    await commitFiles(cfg(), [{ path: `_import/${id}.json`, text: JSON.stringify(req, null, 1) + '\n' }], `转载请求：${req.url}（${me.name}）`);
+    toast('已提交，约 1 分钟后在「待审核」里出现');
+    tab = 'pending'; busy = false; render();
+  } catch (e) { toast('提交失败：' + explain(e), true); }
+  finally { busy = false; btn.disabled = false; }
+}
+
 // 转载：提交一个请求文件 _import/<编号>.json，GitHub Actions 抓取后生成待审核稿（tools/import_article.py）
 const IMPORT_OK = /^https:\/\/(mp\.weixin\.qq\.com\/s|news\.bistu\.edu\.cn\/|weixin\.qq\.com\/sph\/|channels\.weixin\.qq\.com\/)/;
 function renderImport() {
@@ -201,6 +217,10 @@ function renderWrite() {
         <label>日期<input id="cDate" type="date" value="${today()}"></label>
       </div>
       <div class="row" id="cLearn" hidden>${learnSelects('c')}</div>
+      <div id="cSphBox" hidden>
+        <label>视频号链接（选填）<input id="cSph" placeholder="https://weixin.qq.com/sph/..."></label>
+        <p class="hint">在视频号里点「···」→「复制链接」。有视频文件时，网页播放压缩版并注明「高清原版在视频号」；只有链接时，网站生成跳转视频号的卡片。</p>
+      </div>
       <label>正文<textarea id="cText" rows="9" placeholder="直接输入文字，每按一次回车就是新的一段"></textarea></label>
       <p class="hint">想让照片或视频出现在正文某个位置：把光标放到那里，点缩略图下方的「插入正文」（会写入【图1】这样的标记）。同一行写两个标记会并排显示；没插入的照片视频会排在文末。</p>
       <div class="media">
@@ -210,6 +230,8 @@ function renderWrite() {
       <div class="media">
         <div class="media-head"><b>视频</b><span class="hint" id="hintVideo"></span><label class="btn">＋ 添加视频<input id="cVideos" type="file" accept="video/*" multiple hidden></label></div>
         <div class="thumbs" id="tVideos"></div>
+        <div class="sph-ask" id="cSphAsk" hidden>📌 排球课堂的视频会<b>压缩成 1080p 高清并在画面右下角加上 BISTU-Volleyball 水印</b>。<br>
+          如果这个视频<b>已经发在协会视频号</b>，请在上方「视频号链接」里填上，网页会注明“高清原版在视频号”并附跳转。</div>
       </div>
       <div class="media">
         <div class="media-head"><b>附件</b><span class="hint">规则文件、讲义等（PDF、Word、PPT、Excel），每个不超过 ${MAX_FILE_MB}MB，读者可以在线查看或下载</span><label class="btn">＋ 添加附件<input id="cFiles" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" multiple hidden></label></div>
@@ -222,6 +244,8 @@ function renderWrite() {
   const drawThumbs = () => {
     $('#tPhotos').innerHTML = draft.photos.map((f, i) => `<div class="thw"><div class="th"><img src="${f.preview}"><button data-rm="photos:${i}">×</button><span>${i === 0 ? '封面 · ' : ''}图${i + 1}</span></div><button class="ins" data-ins="photos:${i}">插入正文</button></div>`).join('');
     $('#tVideos').innerHTML = draft.videos.map((f, i) => `<div class="thw"><div class="th vid"><video src="${f.preview}" muted preload="metadata"></video><button data-rm="videos:${i}">×</button><span>视频${i + 1} · ${(f.size / 1048576).toFixed(0)}MB</span></div><button class="ins" data-ins="videos:${i}">插入正文</button></div>`).join('');
+    const ask = $('#cSphAsk');
+    if (ask) ask.hidden = !($('#cSec').value === 'learn' && draft.videos.length);
     $('#tFiles').innerHTML = draft.files.map((f, i) => `<div class="fileitem">📄 ${esc(f.name)} <span class="hint">${fmtSize(f.size)}</span><button data-rmf="${i}">×</button></div>`).join('');
     v.querySelectorAll('[data-rmf]').forEach(b => b.onclick = () => { draft.files.splice(+b.dataset.rmf, 1); drawThumbs(); });
     v.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => {
@@ -249,6 +273,11 @@ function renderWrite() {
   const add = k => e => {
     for (const f of e.target.files) { f.preview = URL.createObjectURL(f); draft[k].push(f); }
     e.target.value = ''; drawThumbs();
+    // 排球课堂加了视频：提醒会压缩加水印，并问有没有视频号链接
+    if (k === 'videos' && $('#cSec').value === 'learn' && !$('#cSph').value.trim()) {
+      toast('视频会压缩成高清并加水印；如果已发在视频号，请填上视频号链接');
+      $('#cSph').focus();
+    }
   };
   $('#cPhotos').onchange = add('photos');
   $('#cVideos').onchange = add('videos');
@@ -263,6 +292,8 @@ function renderWrite() {
   const hints = () => {
     const k = sec.value;
     $('#cLearn').hidden = k !== 'learn';
+    $('#cSphBox').hidden = k !== 'learn';
+    $('#cSphAsk').hidden = !(k === 'learn' && draft.videos.length);
     $('#hintPhoto').textContent = ORIGINAL_PHOTO.includes(k)
       ? '保留原图（点开照片看原图，网页上显示高清版）；第一张作为封面'
       : '自动缩小到适合网页的大小；第一张作为封面';
@@ -281,6 +312,15 @@ async function submit() {
   if (!title) return toast('请填写标题', true);
   if (!text.trim() && !draft.photos.length && !draft.videos.length && !draft.files.length) return toast('正文、照片、视频、附件至少要有一样', true);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return toast('请选择日期', true);
+  const sph = section === 'learn' ? $('#cSph').value.trim().replace(/#.*$/, '') : '';
+  if (sph && !SPH_OK.test(sph)) return toast('视频号链接不对：请在视频号里点「···」→「复制链接」后粘贴（weixin.qq.com/sph/…）', true);
+  if (section === 'learn' && sph && !draft.videos.length && !draft.photos.length) {
+    // 只有视频号链接：走转载，自动取封面（标题用填写的）
+    if (!confirm('只填了视频号链接、没有上传视频：将自动获取视频号的封面，在网站上生成跳转视频号的卡片。继续吗？')) return;
+    return submitChannelsOnly(sph, title);
+  }
+  if (section === 'learn' && draft.videos.length && !sph &&
+      !confirm('没有填写视频号链接。\n\n如果这个视频已经发在协会视频号，建议附上链接：网页会注明“高清原版在视频号”并提供跳转。\n\n点「确定」直接提交，点「取消」返回填写。')) return $('#cSph').focus();
   const btn = $('#cSubmit'), status = $('#cStatus');
   const step = s => { status.textContent = s; };
   busy = true; btn.disabled = true;
@@ -339,6 +379,7 @@ async function submit() {
       attachments.push({ name: f.name, src: '/' + path, size: f.size });
     }
     const learn = section === 'learn' ? { topic: $('.cTopic').value, level: $('.cLevel').value } : {};
+    if (sph) learn.channels = normSph(sph);
     const post = { title, date, section, text, author: me.name, cover: images[0] || videos[0]?.poster, images, originals: keepOrig ? originals : undefined, ratios, videos, attachments, ...learn, submitted: new Date().toISOString() };
     files.push({ path: `_pending/${slug}.md`, text: buildPost(post) });
     await commitFiles(cfg(), files, `投稿：${title}（${me.name}）`, step);
@@ -448,7 +489,7 @@ async function renderPending() {
           <label>栏目<select class="eSec">${SECTIONS.map(s => `<option value="${s.key}"${s.key === p.section ? ' selected' : ''}>${s.name}</option>`).join('')}</select></label>
           <label>日期<input class="eDate" type="date" value="${esc(p.date)}"></label>
         </div>
-        <div class="row eLearn"${p.section === 'learn' ? '' : ' hidden'}>${learnSelects('e', p)}</div>
+        <div class="row eLearn"${p.section === 'learn' ? '' : ' hidden'}>${learnSelects('e', p)}<label>视频号链接（选填）<input class="eSph" value="${esc(p.channels || '')}" placeholder="https://weixin.qq.com/sph/..."></label></div>
         ${p.cover ? `<div class="cover-pick"><span>首页封面（卡片按这个范围截取）</span>
           <div class="cover-box"><img class="eCoverImg" src="${url(p.cover)}" style="object-position: 50% ${esc(p.cover_pos || '50%')}"></div>
           <select class="eCoverPos">${COVER_POS.map(([v, n]) => `<option value="${v}"${v === (p.cover_pos || '50%') ? ' selected' : ''}>${n}</option>`).join('')}</select></div>` : ''}
@@ -493,7 +534,12 @@ async function renderPending() {
       const pos = card.querySelector('.eCoverPos')?.value;
       const q = { ...p, title: card.querySelector('.eTitle').value.trim(), section: card.querySelector('.eSec').value, date: card.querySelector('.eDate').value, text: card.querySelector('.eText').value, cover_pos: pos && pos !== '50%' ? pos : undefined, approved_by: me.name,
         images: st.images, originals: st.originals || undefined, ratios: st.ratios || undefined, cover: st.cover || undefined };
-      if (q.section === 'learn') { q.topic = card.querySelector('.eTopic').value; q.level = card.querySelector('.eLevel').value; }
+      if (q.section === 'learn') {
+        q.topic = card.querySelector('.eTopic').value; q.level = card.querySelector('.eLevel').value;
+        const sl = card.querySelector('.eSph').value.trim();
+        if (sl && !SPH_OK.test(sl)) throw new Error('视频号链接不对，请重新复制（weixin.qq.com/sph/…）');
+        q.channels = sl ? normSph(sl) : undefined;
+      }
       else { delete q.topic; delete q.level; }
       if (!q.title || !/^\d{4}-\d{2}-\d{2}$/.test(q.date)) throw new Error('标题和日期不能为空');
       await commitFiles(cfg(), [{ path: `_posts/${p.slug}.md`, text: buildPost(q) }, { path: p.path, del: true }, ...st.removed.map(f => ({ path: f.replace(/^\//, ''), del: true }))], `发布：${q.title}（审核：${me.name}）`);

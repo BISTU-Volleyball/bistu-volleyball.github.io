@@ -38,7 +38,8 @@ layout: default
   <div class="crumb">{% if sec %}<a href="{{ sec.url | relative_url }}">{{ sec.name }}</a> ›{% endif %}</div>
   <h1>{{ page.title }}</h1>
   <div class="meta">{{ page.date | date: '%Y年%-m月%-d日' }}{% if page.author %} · {{ page.author }}{% endif %}{% if page.topic %}<span class="lt-topic">{{ page.topic }}</span>{% endif %}{% if page.level %}<span class="lt-level lt-{% if page.level == '入门' %}easy{% else %}hard{% endif %}">{{ page.level }}</span>{% endif %}</div>
-  {% if page.channels %}
+  {% assign nv = page.videos | size %}
+  {% if page.channels and nv == 0 %}
   <a class="sph-box" href="{{ page.channels }}" target="_blank" rel="noopener">
     {% if page.cover %}<img src="{{ page.cover | relative_url }}" alt="">{% endif %}
     <span class="sph-play">▶</span>
@@ -49,6 +50,7 @@ layout: default
   {% capture rest_vid %}{% for v in page.videos %}{% assign key = ',' | append: forloop.index | append: ',' %}{% unless used_vid contains key %}
     <figure>{{ v_pre }}<video controls playsinline preload="none"{{ v_attr }} src="{{ v.src | relative_url }}"{% if v.poster %} poster="{{ v.poster | relative_url }}"{% endif %}></video>{{ v_post }}{% if v.caption %}<figcaption>{{ v.caption }}</figcaption>{% endif %}</figure>{% endunless %}{% endfor %}{% endcapture %}
   {% assign rest_vid = rest_vid | strip %}{% if rest_vid != '' %}<div class="videos">{{ rest_vid }}</div>{% endif %}
+  {% if page.channels and nv > 0 %}<a class="sph-note" href="{{ page.channels }}" target="_blank" rel="noopener"><span class="sph-note-ic">▶</span><span><b>网页播放的是压缩版，高清原版发布在协会视频号</b><small>点击在微信视频号观看高清版（电脑上会显示二维码，用微信扫一扫）</small></span><span class="sph-note-go">去看高清 ›</span></a>{% endif %}
   {% capture rest_img %}{% for im in page.images %}{% assign key = ',' | append: forloop.index | append: ',' %}{% unless used_img contains key %}{% assign full = page.originals[forloop.index0] | default: im %}<a href="{{ full | relative_url }}" target="_blank"><img loading="lazy" src="{{ im | relative_url }}" alt=""></a>{% endunless %}{% endfor %}{% endcapture %}
   {% assign rest_img = rest_img | strip %}{% if rest_img != '' %}<div class="photos">{{ rest_img }}</div>{% endif %}
   {% if page.attachments and page.attachments.size > 0 %}

@@ -166,7 +166,7 @@ def credit_line(seq_texts):
 SPH_RE = re.compile(r'weixin\.qq\.com/sph/([A-Za-z0-9_-]+)|channels\.weixin\.qq\.com/.*[?&]id=([A-Za-z0-9_-]+)')
 
 
-def build_channels(url, section='news', requester=''):
+def build_channels(url, section='news', requester='', extra=None):
     """视频号：视频不能嵌进网页，生成一张卡片，点击直接打开视频号（微信里播放，电脑上显示扫码页）"""
     m = SPH_RE.search(url)
     if not m:
@@ -189,7 +189,8 @@ def build_channels(url, section='news', requester=''):
     text_lines = [re.sub(r'(?:\s*#[^#\s]+)+\s*$', '', l).strip() for l in lines]
     text_lines = [l for l in text_lines if l]
     tags = re.findall(r'#([^#\s]+)', desc)
-    title = (text_lines[0] if text_lines else f'{author}的视频')[:60]
+    extra = extra or {}
+    title = (extra.get('title') or (text_lines[0] if text_lines else f'{author}的视频'))[:60]
     ts = int(feed.get('createtime') or 0)
     date = datetime.datetime.fromtimestamp(ts, TZ).strftime('%Y-%m-%d') if ts else datetime.datetime.now(TZ).strftime('%Y-%m-%d')
     slug = f'{date}-{secrets.token_hex(3)}'
@@ -209,6 +210,7 @@ def build_channels(url, section='news', requester=''):
     data = {'layout': 'post', 'title': title, 'date': f'{date} 12:00:00 +0800', 'section': section if section in SECTIONS else 'news',
             'author': author, 'summary': cut_summary(' '.join(text_lines)) or title, 'cover': images[0] if images else '',
             'images': images, 'ratios': ratios, 'channels': link,
+            'topic': extra.get('topic') if section == 'learn' else None, 'level': extra.get('level') if section == 'learn' else None,
             'submitted': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), 'submitted_by': requester, 'source_url': link}
     data = {k: v for k, v in data.items() if v not in ('', [], None)}
     fm = '\n'.join(f'{k}: {json.dumps(v, ensure_ascii=False)}' for k, v in data.items())
@@ -218,9 +220,9 @@ def build_channels(url, section='news', requester=''):
     return slug, title, len(images)
 
 
-def build(url, section='news', requester=''):
+def build(url, section='news', requester='', extra=None):
     if SPH_RE.search(url):
-        return build_channels(url, section, requester)
+        return build_channels(url, section, requester, extra)
     meta, seq = parse(url)
     date = meta['date']
     slug = f'{date}-{secrets.token_hex(3)}'
@@ -328,7 +330,7 @@ def process_queue():
         path = os.path.join(qdir, name)
         req = json.load(io.open(path, encoding='utf-8'))
         try:
-            slug, title, n = build(req['url'], req.get('section', 'news'), req.get('by', ''))
+            slug, title, n = build(req['url'], req.get('section', 'news'), req.get('by', ''), req)
             os.remove(path)
             done.append(f'{title}（{n} 张照片）')
             print('OK', slug, title, n)
