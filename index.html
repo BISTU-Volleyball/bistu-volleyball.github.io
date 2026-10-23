@@ -47,7 +47,7 @@ home: true
   {% if lead %}
   <div class="h-news">
     {% assign sec = site.sections | where: "key", lead.section | first %}
-    <a class="h-lead" href="{{ lead.url | relative_url }}">
+    <a class="h-lead" href="{% if lead.channels %}{{ lead.channels }}" target="_blank" rel="noopener{% else %}{{ lead.url | relative_url }}{% endif %}">
       <div class="h-lead-img"><img src="{{ lead.cover | relative_url }}" alt=""{% if lead.cover_pos %} style="object-position: 50% {{ lead.cover_pos }}"{% endif %}></div>
       <div class="h-lead-txt">
         <div class="h-meta"><span class="h-tag h-tag-{{ lead.section }}">{{ sec.name }}</span>{{ lead.date | date: '%Y年%-m月%-d日' }}</div>
@@ -57,7 +57,7 @@ home: true
     </a>
     <div class="h-list">
       {% for p in news offset: 1 limit: 4 %}{% assign sec = site.sections | where: "key", p.section | first %}
-      <a class="h-item" href="{{ p.url | relative_url }}">
+      <a class="h-item" href="{% if p.channels %}{{ p.channels }}" target="_blank" rel="noopener{% else %}{{ p.url | relative_url }}{% endif %}">
         <img src="{{ p.cover | relative_url }}" alt="" loading="lazy"{% if p.cover_pos %} style="object-position: 50% {{ p.cover_pos }}"{% endif %}>
         <div>
           <div class="h-meta"><span class="h-tag h-tag-{{ p.section }}">{{ sec.name }}</span>{{ p.date | date: '%Y-%m-%d' }}</div>

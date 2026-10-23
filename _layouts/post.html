@@ -38,6 +38,13 @@ layout: default
   <div class="crumb">{% if sec %}<a href="{{ sec.url | relative_url }}">{{ sec.name }}</a> ›{% endif %}</div>
   <h1>{{ page.title }}</h1>
   <div class="meta">{{ page.date | date: '%Y年%-m月%-d日' }}{% if page.author %} · {{ page.author }}{% endif %}{% if page.topic %}<span class="lt-topic">{{ page.topic }}</span>{% endif %}{% if page.level %}<span class="lt-level lt-{% if page.level == '入门' %}easy{% else %}hard{% endif %}">{{ page.level }}</span>{% endif %}</div>
+  {% if page.channels %}
+  <a class="sph-box" href="{{ page.channels }}" target="_blank" rel="noopener">
+    {% if page.cover %}<img src="{{ page.cover | relative_url }}" alt="">{% endif %}
+    <span class="sph-play">▶</span>
+    <span class="sph-tip">点击在微信视频号观看<small>在微信里直接播放；电脑上会显示二维码，用微信扫一扫</small></span>
+  </a>
+  {% endif %}
   <div class="post-body">{{ body }}</div>
   {% capture rest_vid %}{% for v in page.videos %}{% assign key = ',' | append: forloop.index | append: ',' %}{% unless used_vid contains key %}
     <figure>{{ v_pre }}<video controls playsinline preload="none"{{ v_attr }} src="{{ v.src | relative_url }}"{% if v.poster %} poster="{{ v.poster | relative_url }}"{% endif %}></video>{{ v_post }}{% if v.caption %}<figcaption>{{ v.caption }}</figcaption>{% endif %}</figure>{% endunless %}{% endfor %}{% endcapture %}

@@ -1,6 +1,6 @@
 {% assign p = include.post %}{% assign sec = site.sections | where: "key", p.section | first %}
-<a class="card" href="{{ p.url | relative_url }}">
-  <div class="card-img">{% if p.cover %}<img loading="lazy" src="{{ p.cover | relative_url }}" alt=""{% if p.cover_pos %} style="object-position: 50% {{ p.cover_pos }}"{% endif %}>{% else %}<div class="card-ph">🏐</div>{% endif %}{% if p.videos and p.videos.size > 0 %}<span class="badge">▶ 视频</span>{% endif %}</div>
+<a class="card" href="{% if p.channels %}{{ p.channels }}" target="_blank" rel="noopener{% else %}{{ p.url | relative_url }}{% endif %}">
+  <div class="card-img">{% if p.cover %}<img loading="lazy" src="{{ p.cover | relative_url }}" alt=""{% if p.cover_pos %} style="object-position: 50% {{ p.cover_pos }}"{% endif %}>{% else %}<div class="card-ph">🏐</div>{% endif %}{% if p.channels %}<span class="badge badge-sph">▶ 视频号</span>{% elsif p.videos and p.videos.size > 0 %}<span class="badge">▶ 视频</span>{% endif %}</div>
   <div class="card-body">
     <div class="meta">{% if sec %}<span class="tag">{{ sec.name }}</span>{% endif %}{{ p.date | date: '%Y-%m-%d' }}</div>
     <h3>{{ p.title }}</h3>

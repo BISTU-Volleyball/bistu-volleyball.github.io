@@ -164,3 +164,12 @@ img, video { max-width: 100%; display: block; }
 .fl-main span { font-size: 13px; color: var(--muted); }
 .fl-btn { flex: none; padding: 7px 16px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; }
 @media (max-width: 720px) { .learn-head { margin-top: 14px; padding: 22px 18px; } .learn-head h1 { font-size: 24px; } }
+
+/* 视频号卡片 */
+.badge-sph { background: #07c160; }
+.lesson-sph { left: 8px; right: auto; background: #07c160; }
+.sph-box { position: relative; display: block; margin: 16px auto 8px; max-width: 420px; border-radius: 14px; overflow: hidden; background: #000; box-shadow: var(--shadow); }
+.sph-box img { width: 100%; display: block; opacity: .85; }
+.sph-play { position: absolute; left: 50%; top: 45%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; background: rgba(7, 193, 96, .92); color: #fff; display: grid; place-items: center; font-size: 24px; padding-left: 4px; box-shadow: 0 8px 20px rgba(0, 0, 0, .35); }
+.sph-tip { position: absolute; left: 0; right: 0; bottom: 0; padding: 30px 16px 14px; color: #fff; font-weight: 700; text-align: center; background: linear-gradient(transparent, rgba(0, 0, 0, .75)); }
+.sph-tip small { display: block; font-weight: 400; font-size: 12px; opacity: .85; margin-top: 2px; }

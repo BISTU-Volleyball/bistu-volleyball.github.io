@@ -63,7 +63,7 @@ function explain(e) {
 
 // ---------- 文章文件格式 ----------
 // front matter 每行一个 key: JSON 值（JSON 也是合法 YAML）；正文每段一行，包在 raw 里防止 Liquid 误解析
-const FM_KEYS = ['layout', 'title', 'date', 'section', 'author', 'summary', 'cover', 'cover_pos', 'images', 'originals', 'ratios', 'videos', 'attachments', 'topic', 'level', 'submitted', 'submitted_by', 'source_url', 'approved_by'];
+const FM_KEYS = ['layout', 'title', 'date', 'section', 'author', 'summary', 'cover', 'cover_pos', 'images', 'originals', 'ratios', 'videos', 'attachments', 'channels', 'topic', 'level', 'submitted', 'submitted_by', 'source_url', 'approved_by'];
 
 function buildPost(p) {
   const paras = p.text.split('\n').map(s => s.trim().replace(/\{%\s*endraw\s*%\}/g, '')).filter(Boolean);
@@ -157,27 +157,27 @@ async function verify() {
 let composeMode = 'write';
 function renderCompose() {
   $('#view').innerHTML = `
-    <div class="modes"><button data-mode="write" class="${composeMode === 'write' ? 'on' : ''}">✍️ 自己写</button><button data-mode="import" class="${composeMode === 'import' ? 'on' : ''}">🔗 转载公众号文章</button></div>
+    <div class="modes"><button data-mode="write" class="${composeMode === 'write' ? 'on' : ''}">✍️ 自己写</button><button data-mode="import" class="${composeMode === 'import' ? 'on' : ''}">🔗 转载公众号 / 视频号</button></div>
     <div id="cbody"></div>`;
   root.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { if (!busy) { composeMode = b.dataset.mode; renderCompose(); } });
   (composeMode === 'import' ? renderImport : renderWrite)();
 }
 
 // 转载：提交一个请求文件 _import/<编号>.json，GitHub Actions 抓取后生成待审核稿（tools/import_article.py）
-const IMPORT_OK = /^https:\/\/(mp\.weixin\.qq\.com\/s|news\.bistu\.edu\.cn\/)/;
+const IMPORT_OK = /^https:\/\/(mp\.weixin\.qq\.com\/s|news\.bistu\.edu\.cn\/|weixin\.qq\.com\/sph\/|channels\.weixin\.qq\.com\/)/;
 function renderImport() {
   const v = $('#cbody');
   v.innerHTML = `
     <div class="panel">
       <label>文章链接<input id="iUrl" placeholder="https://mp.weixin.qq.com/s/..."></label>
-      <p class="hint">支持微信公众号文章和学校新闻网（news.bistu.edu.cn）。在微信里打开文章 → 右上角「…」→「复制链接」。</p>
+      <p class="hint">支持<b>公众号文章</b>、<b>视频号视频</b>和学校新闻网（news.bistu.edu.cn）。在微信里打开文章或视频 → 右上角「···」→「复制链接」。视频号的视频不会搬到网站上，网站会生成一张卡片，点击直接跳到视频号观看（标题、封面自动获取），不占网站空间、不限时长。</p>
       <label>栏目<select id="iSec">${SECTIONS.map(s => `<option value="${s.key}">${s.name}</option>`).join('')}</select></label>
       <p class="hint">提交后网站会自动抓取标题、日期、正文和照片，按原文顺序排好，约 1~2 分钟后出现在「待审核」里，由管理员检查后发布。</p>
       <button class="primary" id="iGo">开始转载</button>
     </div>`;
   $('#iGo').onclick = async () => {
     const link = $('#iUrl').value.trim().replace(/#.*$/, '');
-    if (!IMPORT_OK.test(link)) return toast('请粘贴公众号文章（mp.weixin.qq.com/s/…）或学校新闻网的链接', true);
+    if (!IMPORT_OK.test(link)) return toast('请粘贴公众号文章（mp.weixin.qq.com/s/…）、视频号（weixin.qq.com/sph/…）或学校新闻网的链接', true);
     const btn = $('#iGo');
     busy = true; btn.disabled = true;
     try {

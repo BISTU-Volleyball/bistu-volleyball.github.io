@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""转载公众号 / 学校新闻网文章，生成发布助手格式的待审核稿。
+"""转载公众号 / 学校新闻网文章、视频号视频，生成发布助手格式的待审核稿。
 
 由 GitHub Actions 处理 _import/*.json 请求时调用（见 .github/workflows/import.yml），也可以本地运行：
     python tools/import_article.py <链接> [栏目 news|matches|gallery] [投稿人]
@@ -24,7 +24,7 @@ TZ = datetime.timezone(datetime.timedelta(hours=8))
 BOILER = re.compile(r'^(点击蓝字|关注我们|END|左右滑动|查看更多|版权声明|以人为本|激发运动兴趣|长按|扫码|识别二维码|往期回顾|推荐阅读|- 分享 -|分享|[✦•·\-—_~～\s]+$)')
 CREDIT = re.compile(r'^(文字|图片|图文|供稿|供图|视频|摄影|撰稿|文|图|图片、视频|图文、视频|视频、图片|今日编辑|责任编辑|编辑|责编|排版|审核|校对|美编|初审|复审|终审|来源)\s*[|｜:：]\s*(.+)$')
 KEEP_CREDIT = {'文字', '图片', '图文', '供稿', '供图', '视频', '摄影', '撰稿', '文', '图', '图片、视频', '图文、视频', '视频、图片'}
-SECTIONS = {'news', 'matches', 'gallery'}
+SECTIONS = {'news', 'matches', 'gallery', 'learn'}
 
 
 def get(url, referer=None):
@@ -99,7 +99,7 @@ def parse(url):
         base = url.split('/')[0] + '//' + url.split('/')[2] + '/'
         seq = sequence(body, r'src="(?:\.\./)+([^"]+\.(?:jpe?g|png|webp))"', base)
     else:
-        raise RuntimeError('目前只支持微信公众号文章（mp.weixin.qq.com）和学校新闻网（bistu.edu.cn）')
+        raise RuntimeError('目前支持微信公众号文章（mp.weixin.qq.com）、微信视频号和学校新闻网（bistu.edu.cn）')
     return meta, seq
 
 
@@ -163,7 +163,64 @@ def credit_line(seq_texts):
     return '　'.join(keep)
 
 
+SPH_RE = re.compile(r'weixin\.qq\.com/sph/([A-Za-z0-9_-]+)|channels\.weixin\.qq\.com/.*[?&]id=([A-Za-z0-9_-]+)')
+
+
+def build_channels(url, section='news', requester=''):
+    """视频号：视频不能嵌进网页，生成一张卡片，点击直接打开视频号（微信里播放，电脑上显示扫码页）"""
+    m = SPH_RE.search(url)
+    if not m:
+        raise RuntimeError('没认出视频号链接，请在视频号里点「···」→「复制链接」后粘贴')
+    sid = m.group(1) or m.group(2)
+    link = f'https://weixin.qq.com/sph/{sid}'
+    api = ('https://channels.weixin.qq.com/finder-preview/api/feed/get_feed_info'
+           f'?_rid={secrets.token_hex(4)}-{secrets.token_hex(4)}&_pageUrl=https:%2F%2Fchannels.weixin.qq.com%2Ffinder-preview%2Fpages%2Fsph')
+    req = urllib.request.Request(api, data=json.dumps({'baseReq': {'generalToken': ''}, 'shortUri': sid}).encode(), headers={
+        'User-Agent': UA, 'Content-Type': 'application/json', 'Accept': 'application/json, text/plain, */*',
+        'Origin': 'https://channels.weixin.qq.com', 'Referer': f'https://channels.weixin.qq.com/finder-preview/pages/sph?id={sid}'})
+    d = json.loads(urllib.request.urlopen(req, timeout=40).read().decode('utf-8'))
+    feed = (d.get('data') or {}).get('feedInfo')
+    if d.get('errCode') != 0 or not feed:
+        raise RuntimeError('读不到这个视频号视频（可能已删除、设为私密，或链接不完整）')
+    author = ((d.get('data') or {}).get('authorInfo') or {}).get('nickname') or '视频号'
+    desc = feed.get('description') or ''
+    lines = [re.sub(r'\s+', ' ', l).strip() for l in desc.split('\n')]
+    lines = [l for l in lines if l]
+    text_lines = [re.sub(r'(?:\s*#[^#\s]+)+\s*$', '', l).strip() for l in lines]
+    text_lines = [l for l in text_lines if l]
+    tags = re.findall(r'#([^#\s]+)', desc)
+    title = (text_lines[0] if text_lines else f'{author}的视频')[:60]
+    ts = int(feed.get('createtime') or 0)
+    date = datetime.datetime.fromtimestamp(ts, TZ).strftime('%Y-%m-%d') if ts else datetime.datetime.now(TZ).strftime('%Y-%m-%d')
+    slug = f'{date}-{secrets.token_hex(3)}'
+    images, ratios = [], []
+    if feed.get('coverUrl'):
+        im = Image.open(io.BytesIO(get(feed['coverUrl']))).convert('RGB')
+        sc = min(1, 1600 / max(im.size))
+        im = im.resize((round(im.width * sc), round(im.height * sc)), Image.LANCZOS)
+        adir = os.path.join(ROOT, 'assets', 'posts', slug)
+        os.makedirs(adir, exist_ok=True)
+        im.save(os.path.join(adir, 'p1.jpg'), quality=88, optimize=True)
+        images, ratios = [f'/assets/posts/{slug}/p1.jpg'], [round(im.width / im.height, 3)]
+    blocks = text_lines[1:] if len(text_lines) > 1 else []
+    if tags:
+        blocks.append('话题：' + '　'.join('#' + t for t in tags))
+    blocks.append(f'来源：{author}微信视频号，[在视频号观看]({link})')
+    data = {'layout': 'post', 'title': title, 'date': f'{date} 12:00:00 +0800', 'section': section if section in SECTIONS else 'news',
+            'author': author, 'summary': cut_summary(' '.join(text_lines)) or title, 'cover': images[0] if images else '',
+            'images': images, 'ratios': ratios, 'channels': link,
+            'submitted': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), 'submitted_by': requester, 'source_url': link}
+    data = {k: v for k, v in data.items() if v not in ('', [], None)}
+    fm = '\n'.join(f'{k}: {json.dumps(v, ensure_ascii=False)}' for k, v in data.items())
+    body = '\n\n'.join(b.replace('{% endraw %}', '') for b in blocks)
+    with io.open(os.path.join(ROOT, '_pending', slug + '.md'), 'w', encoding='utf-8', newline='\n') as f:
+        f.write(f'---\n{fm}\n---\n{{% raw %}}\n{body}\n{{% endraw %}}\n')
+    return slug, title, len(images)
+
+
 def build(url, section='news', requester=''):
+    if SPH_RE.search(url):
+        return build_channels(url, section, requester)
     meta, seq = parse(url)
     date = meta['date']
     slug = f'{date}-{secrets.token_hex(3)}'
