@@ -45,7 +45,7 @@ img, video { max-width: 100%; display: block; }
 @media (max-width: 720px) {
   .brand-full { display: none; } .brand-short { display: inline; }
   .pub-btn { display: inline-block; } .nav a.nav-pub { display: none; }
-  .top-in { padding: 6px 0; }
+  .top-in { padding: 6px 12px; }
   .nav { width: 100%; }
   .nav a { padding: 6px 7px; font-size: 13.5px; }
 }
