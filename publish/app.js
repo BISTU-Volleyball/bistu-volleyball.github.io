@@ -3,7 +3,7 @@
 // 额外带 Pages 写权限的是管理员钥匙（能审核、管理已发布内容、重新构建网站）
 // 子模块带上与 app.js 相同的版本号，网站更新后不会用到浏览器里缓存的旧版本
 const VER = new URL(import.meta.url).search;
-const { ghClient, commitFiles, speedTest, shrinkImage } = await import('./gh.js' + VER);
+const { ghClient, commitFiles, speedTest, shrinkImage, keepOriginal } = await import('./gh.js' + VER);
 
 const root = document.getElementById('pub');
 const REPO = root.dataset.repo;
@@ -16,7 +16,9 @@ const learnSelects = (cls, p = {}) => `<label>分类<select class="${cls}Topic">
 const fmtSize = n => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
 const attachList = list => (list || []).length ? `<div class="pv-files">${list.map(a => `<a href="${url(a.src)}" target="_blank">📄 ${esc(a.name)} <span>${fmtSize(a.size || 0)}</span></a>`).join('')}</div>` : '';
 const LS = 'bv_pub';
-const MAX_VIDEO_MB = 50;
+// 各栏目的画质：排球课堂、风采相册用高清视频；风采相册的照片保留原图（其余栏目照片缩到长边 1600）
+const HQ_VIDEO = ['learn', 'gallery'], ORIGINAL_PHOTO = ['gallery'];
+const MAX_MB = { standard: 50, high: 70 };
 const COVER_POS = [['15%', '偏上'], ['50%', '居中'], ['85%', '偏下']]; // 首页卡片封面的截取位置
 const MARK = { photos: '图', videos: '视频' }; // 正文里插图标记：【图1】【视频1】
 
@@ -61,7 +63,7 @@ function explain(e) {
 
 // ---------- 文章文件格式 ----------
 // front matter 每行一个 key: JSON 值（JSON 也是合法 YAML）；正文每段一行，包在 raw 里防止 Liquid 误解析
-const FM_KEYS = ['layout', 'title', 'date', 'section', 'author', 'summary', 'cover', 'cover_pos', 'images', 'ratios', 'videos', 'attachments', 'topic', 'level', 'submitted', 'submitted_by', 'source_url', 'approved_by'];
+const FM_KEYS = ['layout', 'title', 'date', 'section', 'author', 'summary', 'cover', 'cover_pos', 'images', 'originals', 'ratios', 'videos', 'attachments', 'topic', 'level', 'submitted', 'submitted_by', 'source_url', 'approved_by'];
 
 function buildPost(p) {
   const paras = p.text.split('\n').map(s => s.trim().replace(/\{%\s*endraw\s*%\}/g, '')).filter(Boolean);
@@ -202,11 +204,11 @@ function renderWrite() {
       <label>正文<textarea id="cText" rows="9" placeholder="直接输入文字，每按一次回车就是新的一段"></textarea></label>
       <p class="hint">想让照片或视频出现在正文某个位置：把光标放到那里，点缩略图下方的「插入正文」（会写入【图1】这样的标记）。同一行写两个标记会并排显示；没插入的照片视频会排在文末。</p>
       <div class="media">
-        <div class="media-head"><b>照片</b><span class="hint">自动缩小到适合网页的大小；第一张作为封面</span><label class="btn">＋ 添加照片<input id="cPhotos" type="file" accept="image/*" multiple hidden></label></div>
+        <div class="media-head"><b>照片</b><span class="hint" id="hintPhoto"></span><label class="btn">＋ 添加照片<input id="cPhotos" type="file" accept="image/*" multiple hidden></label></div>
         <div class="thumbs" id="tPhotos"></div>
       </div>
       <div class="media">
-        <div class="media-head"><b>视频</b><span class="hint">自动压缩；比赛片段建议 1 分钟以内，教学视频建议一个动作一段、5 分钟以内</span><label class="btn">＋ 添加视频<input id="cVideos" type="file" accept="video/*" multiple hidden></label></div>
+        <div class="media-head"><b>视频</b><span class="hint" id="hintVideo"></span><label class="btn">＋ 添加视频<input id="cVideos" type="file" accept="video/*" multiple hidden></label></div>
         <div class="thumbs" id="tVideos"></div>
       </div>
       <div class="media">
@@ -258,7 +260,18 @@ function renderWrite() {
     e.target.value = ''; drawThumbs();
   };
   const sec = $('#cSec');
-  sec.onchange = () => { $('#cLearn').hidden = sec.value !== 'learn'; };
+  const hints = () => {
+    const k = sec.value;
+    $('#cLearn').hidden = k !== 'learn';
+    $('#hintPhoto').textContent = ORIGINAL_PHOTO.includes(k)
+      ? '保留原图（点开照片看原图，网页上显示高清版）；第一张作为封面'
+      : '自动缩小到适合网页的大小；第一张作为封面';
+    $('#hintVideo').textContent = k === 'learn'
+      ? '高清（1080p）并自动加 BISTU-Volleyball 水印；一个动作一段，建议 3 分钟以内'
+      : HQ_VIDEO.includes(k) ? '高清（1080p），符合条件的原片直接使用；建议 3 分钟以内' : '自动压缩；建议 1 分钟以内';
+  };
+  sec.onchange = hints;
+  hints();
   drawThumbs();
   $('#cSubmit').onclick = submit;
 }
@@ -275,13 +288,21 @@ async function submit() {
   try {
     const slug = `${date}-${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8, '0').slice(0, 6)}`;
     const dir = `assets/posts/${slug}`;
-    const files = [], images = [], ratios = [], videos = [], attachments = [];
+    const files = [], images = [], originals = [], ratios = [], videos = [], attachments = [];
+    const keepOrig = ORIGINAL_PHOTO.includes(section), quality = HQ_VIDEO.includes(section) ? 'high' : 'standard';
     for (const [i, f] of draft.photos.entries()) {
       step(`处理照片 ${i + 1}/${draft.photos.length}`);
       const path = `${dir}/p${i + 1}.jpg`;
-      const { blob, ratio } = await shrinkImage(f);
-      files.push({ path, blob });
-      images.push('/' + path); ratios.push(ratio);
+      if (keepOrig) {
+        const { blob, ratio, original, ext } = await keepOriginal(f);
+        const opath = `${dir}/p${i + 1}-orig.${ext}`;
+        files.push({ path, blob }, { path: opath, blob: original });
+        images.push('/' + path); originals.push('/' + opath); ratios.push(ratio);
+      } else {
+        const { blob, ratio } = await shrinkImage(f);
+        files.push({ path, blob });
+        images.push('/' + path); ratios.push(ratio);
+      }
     }
     if (draft.videos.length) {
       step('加载视频压缩组件…');
@@ -294,17 +315,19 @@ async function submit() {
         // 排球课堂（自制教学视频）把 BISTU-Volleyball 水印烧进画面
         const wm = section === 'learn' ? 'BISTU-Volleyball' : '';
         if (media.supported()) {
-          step(`压缩${tag}${wm ? '并加水印' : ''}…`);
-          blob = (await media.compress(f, p => step(`压缩${tag}${wm ? '并加水印' : ''}：${Math.round(p * 100)}%`), wm).catch(e => { throw new Error(`「${f.name}」${e.message}`); })).blob;
+          const label = `${quality === 'high' ? '高清' : ''}${wm ? '处理并加水印' : '压缩'}`;
+          step(`${label}${tag}…`);
+          blob = (await media.compress(f, p => step(`${label}${tag}：${Math.round(p * 100)}%`), wm, quality).catch(e => { throw new Error(`「${f.name}」${e.message}`); })).blob;
         } else if (wm) throw new Error('排球课堂的视频要在浏览器里加水印，这个浏览器不支持，请换用电脑上最新版的 Chrome 或 Edge');
         else if (/\.mp4$/i.test(f.name) && f.size <= 20 * 1048576) blob = f;
         else throw new Error('这个浏览器不能压缩视频，请换用电脑上最新版的 Chrome 或 Edge');
-        if (blob.size > MAX_VIDEO_MB * 1048576) throw new Error(`「${f.name}」压缩后仍超过 ${MAX_VIDEO_MB}MB，请剪短一些（建议 1 分钟以内）`);
+        const lim = MAX_MB[quality];
+        if (blob.size > lim * 1048576) throw new Error(`「${f.name}」处理后仍超过 ${lim}MB，请剪短一些（${quality === 'high' ? '高清视频建议 3 分钟以内' : '建议 1 分钟以内'}）`);
         const path = `${dir}/v${i + 1}.mp4`;
         files.push({ path, blob });
         const v = { src: '/' + path };
         if (duration) v.duration = duration;
-        const cover = await media.poster(blob).catch(() => null);
+        const cover = await media.poster(blob, quality === 'high' ? 1280 : 640).catch(() => null);
         if (cover) { files.push({ path: `${dir}/v${i + 1}.jpg`, blob: cover }); v.poster = `/${dir}/v${i + 1}.jpg`; }
         videos.push(v);
       }
@@ -316,7 +339,7 @@ async function submit() {
       attachments.push({ name: f.name, src: '/' + path, size: f.size });
     }
     const learn = section === 'learn' ? { topic: $('.cTopic').value, level: $('.cLevel').value } : {};
-    const post = { title, date, section, text, author: me.name, cover: images[0] || videos[0]?.poster, images, ratios, videos, attachments, ...learn, submitted: new Date().toISOString() };
+    const post = { title, date, section, text, author: me.name, cover: images[0] || videos[0]?.poster, images, originals: keepOrig ? originals : undefined, ratios, videos, attachments, ...learn, submitted: new Date().toISOString() };
     files.push({ path: `_pending/${slug}.md`, text: buildPost(post) });
     await commitFiles(cfg(), files, `投稿：${title}（${me.name}）`, step);
     [...draft.photos, ...draft.videos].forEach(f => URL.revokeObjectURL(f.preview));
@@ -438,7 +461,8 @@ async function renderPending() {
   list.querySelectorAll('.item').forEach(card => {
     const p = posts[+card.dataset.i];
     // 可删除单张照片：st 记录当前保留的照片，删掉的在发布时一并从仓库删除
-    const st = { images: [...p.images], ratios: p.ratios && p.ratios.length === p.images.length ? [...p.ratios] : null, removed: [], cover: p.cover };
+    const st = { images: [...p.images], ratios: p.ratios && p.ratios.length === p.images.length ? [...p.ratios] : null,
+      originals: p.originals && p.originals.length === p.images.length ? [...p.originals] : null, removed: [], cover: p.cover };
     const drawMedia = () => {
       const box = card.querySelector('.eMedia');
       box.innerHTML = p.videos.map(v => `<video controls preload="none" src="${url(v.src)}" ${v.poster ? `poster="${url(v.poster)}"` : ''}></video>`).join('') +
@@ -448,6 +472,7 @@ async function renderPending() {
         const [gone] = st.images.splice(k, 1);
         if (st.ratios) st.ratios.splice(k, 1);
         st.removed.push(gone);
+        if (st.originals) st.removed.push(...st.originals.splice(k, 1));
         const ta = card.querySelector('.eText');
         ta.value = ta.value.replace(/【图(\d+)】/g, (m, n) => +n === k + 1 ? '' : +n > k + 1 ? `【图${n - 1}】` : m)
           .split('\n').filter(l => l.trim()).join('\n');
@@ -467,7 +492,7 @@ async function renderPending() {
     card.querySelector('[data-act="ok"]').onclick = () => act(card, async () => {
       const pos = card.querySelector('.eCoverPos')?.value;
       const q = { ...p, title: card.querySelector('.eTitle').value.trim(), section: card.querySelector('.eSec').value, date: card.querySelector('.eDate').value, text: card.querySelector('.eText').value, cover_pos: pos && pos !== '50%' ? pos : undefined, approved_by: me.name,
-        images: st.images, ratios: st.ratios || undefined, cover: st.cover || undefined };
+        images: st.images, originals: st.originals || undefined, ratios: st.ratios || undefined, cover: st.cover || undefined };
       if (q.section === 'learn') { q.topic = card.querySelector('.eTopic').value; q.level = card.querySelector('.eLevel').value; }
       else { delete q.topic; delete q.level; }
       if (!q.title || !/^\d{4}-\d{2}-\d{2}$/.test(q.date)) throw new Error('标题和日期不能为空');
@@ -824,6 +849,11 @@ function renderSettings() {
       <textarea id="iOut" rows="3" readonly hidden></textarea>
     </div>
     <div class="panel">
+      <h3>网站容量</h3>
+      <p id="capStatus" class="hint">读取中…</p>
+      <p class="hint">GitHub 建议整个网站不超过 1GB，高清视频最占空间；接近上限时请把较长的视频改发 B 站。</p>
+    </div>
+    <div class="panel">
       <h3>网站构建状态</h3>
       <p id="bStatus" class="hint">读取中…</p>
       <button id="bRebuild">重新构建网站</button>
@@ -865,6 +895,21 @@ function renderSettings() {
     } catch (e) { $('#bStatus').textContent = '读取失败：' + explain(e); }
   };
   loadBuild();
+  (async () => {
+    // 统计当前网站里所有文件的大小（不含历史版本），按类型分开
+    try {
+      const t = await gh('/git/trees/main?recursive=1');
+      let total = 0, video = 0, photo = 0;
+      for (const f of t.tree) if (f.type === 'blob') {
+        total += f.size;
+        if (/\.(mp4|mov|webm)$/i.test(f.path)) video += f.size;
+        else if (/\.(jpe?g|png|webp|gif)$/i.test(f.path)) photo += f.size;
+      }
+      const mb = n => (n / 1048576).toFixed(0) + 'MB', pct = Math.round(total / 1073741824 * 100);
+      $('#capStatus').innerHTML = `已用 <b>${mb(total)}</b> / 1GB（${pct}%）　其中视频 ${mb(video)}、照片 ${mb(photo)}` +
+        (pct >= 70 ? '<br><b style="color:var(--bad)">已超过 70%，新视频请尽量改发 B 站。</b>' : '');
+    } catch (e) { $('#capStatus').textContent = '读取失败：' + explain(e); }
+  })();
   $('#bRebuild').onclick = async () => {
     try { await gh('/pages/builds', { method: 'POST' }); toast('已开始重新构建'); setTimeout(loadBuild, 3000); }
     catch (e) { toast('失败：' + explain(e), true); }

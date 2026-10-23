@@ -71,14 +71,25 @@ export async function commitFiles(cfg, files, message, onStep) {
 }
 
 // 照片：按 EXIF 方向摆正，长边缩到 1600 的 JPEG；返回 { blob, ratio }
-export async function shrinkImage(file) {
+export async function shrinkImage(file, maxLong = 1600, quality = 0.85) {
   let bmp;
   try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
   catch (e) { throw new Error(`「${file.name}」读不出来：iPhone 的 HEIC 照片请先转成 JPG（通过微信发送一次即可）`); }
-  const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+  const k = Math.min(1, maxLong / Math.max(bmp.width, bmp.height));
   const c = document.createElement('canvas');
   c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
   c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
-  const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.85));
+  const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', quality));
   return { blob, ratio: Math.round(c.width / c.height * 1000) / 1000 }; // ratio=宽/高，正文并排插图按比例等高排
+}
+
+// 风采相册：保留原图（JPG/PNG/WebP 且不超过 20MB 时原样上传），另做一张长边 2048 的高质量版本用于网页显示
+// 超过 20MB 的照片改存长边 4096、质量 0.92 的版本当"原图"
+export const ORIGINAL_MAX_MB = 20;
+export async function keepOriginal(file) {
+  const show = await shrinkImage(file, 2048, 0.9);
+  const ext = (file.name.match(/\.(jpe?g|png|webp)$/i) || [])[1];
+  if (ext && file.size <= ORIGINAL_MAX_MB * 1048576) return { ...show, original: file, ext: ext.toLowerCase().replace('jpeg', 'jpg') };
+  const big = await shrinkImage(file, 4096, 0.92);
+  return { ...show, original: big.blob, ext: 'jpg' };
 }
