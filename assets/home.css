@@ -17,7 +17,7 @@ body { overflow-x: hidden; }
 .h-hero-in { position: relative; z-index: 2; max-width: 1080px; width: 100%; margin: 0 auto; padding: 0 16px 76px; color: #fff; }
 .h-kicker { font-size: 13px; letter-spacing: .18em; font-weight: 700; color: #ffc46b; display: flex; align-items: center; gap: 12px; }
 /* 首屏文字区的圆形徽标（不压照片主体） */
-.h-emblem { width: 58px; height: 58px; border-radius: 50%; box-shadow: 0 0 0 3px rgba(255, 255, 255, .9), 0 8px 22px rgba(0, 0, 0, .35); }
+.h-emblem { width: 62px; height: 62px; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .45)); }
 /* 加入我们通栏里的完整 logo */
 .h-join-logo { width: 220px; border-radius: 14px; border: 3px solid rgba(255, 255, 255, .85); box-shadow: 0 14px 30px rgba(0, 0, 0, .3); transform: rotate(-3deg); margin-bottom: 20px; display: block; transform-origin: 50% 0; animation: h-sway 5s ease-in-out infinite; }
 /* 像挂着的牌子一样轻轻摆动、上下浮动 */
