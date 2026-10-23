@@ -12,12 +12,12 @@ const REASON = {
 
 // 两档画质：
 //   standard（新闻、赛事）：长边 ≤1280、30 帧、H.264 约 0.65 Mbps；已是 ≤720p、≤1.2 Mbps 的 H.264 只重新封装
-//   high（排球课堂、风采相册）：长边 ≤1920（1080p）、30 帧、约 3 Mbps；已是 ≤1080p 的 H.264 且文件不超过上限的，直接用原片
+//   high（排球课堂、风采相册）：长边 ≤1920（1080p）、30 帧、约 2.5 Mbps（每分钟约 19MB）；已是 ≤1080p 的 H.264 且文件不超过上限的，直接用原片
 // 音频能直接复制就复制（手机视频一般是 AAC），否则转 AAC
 // watermark：传入文字（如 BISTU-Volleyball）时把它烧进画面右下角，此时一律重新压缩（不走"直接用原片"的快捷路径）
 export const PROFILES = {
   standard: { long: 1280, bitrate: 650_000, skipKbps: 1200, maxMB: 50 },
-  high: { long: 1920, bitrate: 3_000_000, skipKbps: Infinity, maxMB: 70 },
+  high: { long: 1920, bitrate: 2_500_000, skipKbps: Infinity, maxMB: 70 },
 };
 export async function compress(file, onProgress, watermark, quality = 'standard') {
   const P = PROFILES[quality] || PROFILES.standard;

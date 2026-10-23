@@ -267,8 +267,8 @@ function renderWrite() {
       ? '保留原图（点开照片看原图，网页上显示高清版）；第一张作为封面'
       : '自动缩小到适合网页的大小；第一张作为封面';
     $('#hintVideo').textContent = k === 'learn'
-      ? '高清（1080p）并自动加 BISTU-Volleyball 水印；一个动作一段，建议 3 分钟以内'
-      : HQ_VIDEO.includes(k) ? '高清（1080p），符合条件的原片直接使用；建议 3 分钟以内' : '自动压缩；建议 1 分钟以内';
+      ? '高清（1080p）并自动加 BISTU-Volleyball 水印；一个动作一段，最长约 3 分半'
+      : HQ_VIDEO.includes(k) ? '高清（1080p），符合条件的原片直接使用；最长约 3 分半' : '自动压缩；建议 1 分钟以内';
   };
   sec.onchange = hints;
   hints();
@@ -322,7 +322,7 @@ async function submit() {
         else if (/\.mp4$/i.test(f.name) && f.size <= 20 * 1048576) blob = f;
         else throw new Error('这个浏览器不能压缩视频，请换用电脑上最新版的 Chrome 或 Edge');
         const lim = MAX_MB[quality];
-        if (blob.size > lim * 1048576) throw new Error(`「${f.name}」处理后仍超过 ${lim}MB，请剪短一些（${quality === 'high' ? '高清视频建议 3 分钟以内' : '建议 1 分钟以内'}）`);
+        if (blob.size > lim * 1048576) throw new Error(`「${f.name}」处理后仍超过 ${lim}MB，请剪短一些（${quality === 'high' ? '高清视频最长约 3 分半' : '建议 1 分钟以内'}）`);
         const path = `${dir}/v${i + 1}.mp4`;
         files.push({ path, blob });
         const v = { src: '/' + path };
