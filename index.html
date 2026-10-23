@@ -4,7 +4,9 @@ home: true
 ---
 <link rel="stylesheet" href="{{ '/assets/home.css' | relative_url }}?v={{ site.time | date: '%s' }}">
 {% assign news = site.posts | where_exp: "p", "p.section != 'gallery'" | where_exp: "p", "p.section != 'learn'" %}
-{% assign lessons = site.posts | where: "section", "learn" %}
+{% assign lessons_all = site.posts | where: "section", "learn" %}
+{% comment %}首页「排球课堂」板块只看教学视频（有本站视频或视频号链接的），满 3 个才出现{% endcomment %}
+{% assign lessons = '' | split: '' %}{% for p in lessons_all %}{% assign nv = p.videos | size %}{% if nv > 0 or p.channels %}{% assign lessons = lessons | push: p %}{% endif %}{% endfor %}
 {% assign lead = news | first %}
 {% assign H = site.data.home %}{% assign A = site.data.about %}
 {% assign heroes = H.heroes %}

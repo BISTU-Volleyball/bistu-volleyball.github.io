@@ -5,6 +5,8 @@ list_section: learn
 summary: 协会教练录制的气排球教学短视频，以及比赛规则等学习资料，零基础也能跟着练。
 ---
 {% assign lessons = site.posts | where: "section", "learn" %}
+{% comment %}有本站视频或视频号链接的算「教学视频」，其余（规则说明、讲义文章等）放到「规则与资料」{% endcomment %}
+{% assign n_video = 0 %}{% for p in lessons %}{% assign nv = p.videos | size %}{% if nv > 0 or p.channels %}{% assign n_video = n_video | plus: 1 %}{% endif %}{% endfor %}
 <section class="learn-head">
   <div class="learn-kicker">LEARN · 排球课堂</div>
   <h1>排球课堂</h1>
@@ -15,8 +17,8 @@ summary: 协会教练录制的气排球教学短视频，以及比赛规则等�
   <div class="learn-title"><h2>🎬 教学视频</h2>
     <div class="chips"><button class="on" data-f="">全部</button>{% for t in site.learn.topics %}<button data-f="{{ t }}">{{ t }}</button>{% endfor %}</div>
   </div>
-  {% if lessons.size == 0 %}<p class="empty">教练们正在录制第一批教学视频，敬请期待。</p>{% else %}
-  <div class="lessons">{% for p in lessons %}{% include lesson-card.html post=p %}{% endfor %}</div>
+  {% if n_video == 0 %}<p class="empty">教练们正在录制第一批教学视频，敬请期待。</p>{% else %}
+  <div class="lessons">{% for p in lessons %}{% assign nv = p.videos | size %}{% if nv > 0 or p.channels %}{% include lesson-card.html post=p %}{% endif %}{% endfor %}</div>
   <p class="empty" id="noMatch" hidden>这个分类还没有内容。</p>{% endif %}
 </section>
 
@@ -24,6 +26,15 @@ summary: 协会教练录制的气排球教学短视频，以及比赛规则等�
   <div class="learn-title"><h2>📄 规则与资料</h2></div>
   {% assign n = 0 %}
   <div class="filelist">
+    {% comment %}没有视频的课堂文章：每篇一行，点开看全文；它的附件在下面单独列出{% endcomment %}
+    {% for p in lessons %}{% assign nv = p.videos | size %}{% assign na = p.attachments | size %}{% unless nv > 0 or p.channels %}{% if na == 0 %}{% assign n = n | plus: 1 %}
+      <a class="fileline docline" href="{{ p.url | relative_url }}">
+        <span class="fl-icon fl-doc-article">{% if p.topic == '规则裁判' %}规则{% else %}资料{% endif %}</span>
+        <div class="fl-main"><b>{{ p.title }}</b>
+          <span>{{ p.date | date: '%Y-%m-%d' }}{% if p.topic %} · {{ p.topic }}{% endif %}{% if p.summary %} · {{ p.summary | truncate: 40 }}{% endif %}</span></div>
+        <span class="fl-btn">阅读</span>
+      </a>
+    {% endif %}{% endunless %}{% endfor %}
     {% for p in lessons %}{% for a in p.attachments %}{% assign n = n | plus: 1 %}
       {% assign ext = a.src | split: '.' | last | downcase %}
       <div class="fileline">
