@@ -29,7 +29,7 @@ layout: default
 {% for v in page.videos %}
   {% assign tag = '【视频' | append: forloop.index | append: '】' %}
   {% if body contains tag %}
-    {% capture fig %}<span class="fig vfig">{{ v_pre }}<video controls playsinline preload="none"{{ v_attr }} src="{{ v.src | relative_url }}"{% if v.poster %} poster="{{ v.poster | relative_url }}"{% endif %}></video>{{ v_post }}</span>{% endcapture %}
+    {% capture fig %}<span class="fig vfig">{{ v_pre }}<video controls playsinline preload="none"{{ v_attr }} src="{{ v.src | relative_url }}"{% if v.poster %} poster="{{ v.poster | relative_url }}"{% endif %}></video>{{ v_post }}{% if v.channels %}<a class="sph-v" href="{{ v.channels }}" target="_blank" rel="noopener"><span class="sph-note-ic">▶</span><span>网页播放的是压缩版，<b>高清原版在协会视频号</b></span><span class="sph-note-go">去看高清 ›</span></a>{% endif %}</span>{% endcapture %}
     {% assign body = body | replace: tag, fig %}
     {% assign used_vid = used_vid | append: forloop.index | append: ',' %}
   {% endif %}
@@ -49,8 +49,9 @@ layout: default
   {% endif %}
   <div class="post-body">{{ body }}</div>
   {% capture rest_vid %}{% for v in page.videos %}{% assign key = ',' | append: forloop.index | append: ',' %}{% unless used_vid contains key %}
-    <figure>{{ v_pre }}<video controls playsinline preload="none"{{ v_attr }} src="{{ v.src | relative_url }}"{% if v.poster %} poster="{{ v.poster | relative_url }}"{% endif %}></video>{{ v_post }}{% if v.caption %}<figcaption>{{ v.caption }}</figcaption>{% endif %}</figure>{% endunless %}{% endfor %}{% endcapture %}
+    <figure>{{ v_pre }}<video controls playsinline preload="none"{{ v_attr }} src="{{ v.src | relative_url }}"{% if v.poster %} poster="{{ v.poster | relative_url }}"{% endif %}></video>{{ v_post }}{% if v.channels %}<a class="sph-v" href="{{ v.channels }}" target="_blank" rel="noopener"><span class="sph-note-ic">▶</span><span>网页播放的是压缩版，<b>高清原版在协会视频号</b></span><span class="sph-note-go">去看高清 ›</span></a>{% endif %}{% if v.caption %}<figcaption>{{ v.caption }}</figcaption>{% endif %}</figure>{% endunless %}{% endfor %}{% endcapture %}
   {% assign rest_vid = rest_vid | strip %}{% if rest_vid != '' %}<div class="videos">{{ rest_vid }}</div>{% endif %}
+  {% comment %}旧格式：整篇一个视频号链接又有本站视频（现在改为每个视频各自的 v.channels）{% endcomment %}
   {% if page.channels and nv > 0 %}<a class="sph-note" href="{{ page.channels }}" target="_blank" rel="noopener"><span class="sph-note-ic">▶</span><span><b>网页播放的是压缩版，高清原版发布在协会视频号</b><small>点击在微信视频号观看高清版（电脑上会显示二维码，用微信扫一扫）</small></span><span class="sph-note-go">去看高清 ›</span></a>{% endif %}
   {% capture rest_img %}{% for im in page.images %}{% assign key = ',' | append: forloop.index | append: ',' %}{% unless used_img contains key %}{% assign full = page.originals[forloop.index0] | default: im %}<a href="{{ full | relative_url }}" target="_blank"><img loading="lazy" src="{{ im | relative_url }}" alt=""></a>{% endunless %}{% endfor %}{% endcapture %}
   {% assign rest_img = rest_img | strip %}{% if rest_img != '' %}<div class="photos">{{ rest_img }}</div>{% endif %}

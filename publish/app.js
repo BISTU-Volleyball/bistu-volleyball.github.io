@@ -256,8 +256,8 @@ function renderWrite() {
       </div>
       <div class="row" id="cLearn" hidden>${learnSelects('c')}</div>${albumPicker('c')}
       <div id="cSphBox" hidden>
-        <label>视频号链接（选填）<input id="cSph" placeholder="https://weixin.qq.com/sph/..."></label>
-        <p class="hint">在视频号里点「···」→「复制链接」。有视频文件时，网页播放压缩版并注明「高清原版在视频号」；只有链接时，网站生成跳转视频号的卡片。</p>
+        <label>只发视频号里的视频（不上传视频文件）？贴视频号链接（选填）<input id="cSph" placeholder="https://weixin.qq.com/sph/..."></label>
+        <p class="hint">在视频号里点「···」→「复制链接」。网站会生成一张卡片，点击跳到视频号观看。上传了视频文件的，请在每个视频下面分别填它的视频号链接。</p>
       </div>
       <label>正文<textarea id="cText" rows="9" placeholder="直接输入文字，每按一次回车就是新的一段"></textarea></label>
       <p class="hint">想让照片或视频出现在正文某个位置：把光标放到那里，点缩略图下方的「插入正文」（会写入【图1】这样的标记）。同一行写两个标记会并排显示；没插入的照片视频会排在文末。</p>
@@ -269,7 +269,7 @@ function renderWrite() {
         <div class="media-head"><b>视频</b><span class="hint" id="hintVideo"></span><label class="btn">＋ 添加视频<input id="cVideos" type="file" accept="video/*" multiple hidden></label></div>
         <div class="thumbs" id="tVideos"></div>
         <div class="sph-ask" id="cSphAsk" hidden>📌 <span id="cSphAskWhat"></span><br>
-          如果这个视频<b>已经发在协会视频号</b>，请在上方「视频号链接」里填上，网页会注明“高清原版在视频号”并附跳转。</div>
+          哪个视频<b>已经发在协会视频号</b>，就在它下面填上<b>它自己的</b>视频号链接，网页会在该视频下注明“高清原版在视频号”并附跳转。</div>
       </div>
       <div class="media">
         <div class="media-head"><b>附件</b><span class="hint">规则文件、讲义等（PDF、Word、PPT、Excel），每个不超过 ${MAX_FILE_MB}MB，读者可以在线查看或下载</span><label class="btn">＋ 添加附件<input id="cFiles" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" multiple hidden></label></div>
@@ -281,7 +281,10 @@ function renderWrite() {
     </div>`;
   const drawThumbs = () => {
     $('#tPhotos').innerHTML = draft.photos.map((f, i) => `<div class="thw"><div class="th"><img src="${f.preview}"><button data-rm="photos:${i}">×</button><span>${i === 0 ? '封面 · ' : ''}图${i + 1}</span></div><button class="ins" data-ins="photos:${i}">插入正文</button></div>`).join('');
-    $('#tVideos').innerHTML = draft.videos.map((f, i) => `<div class="thw"><div class="th vid"><video src="${f.preview}" muted preload="metadata"></video><button data-rm="videos:${i}">×</button><span>视频${i + 1} · ${(f.size / 1048576).toFixed(0)}MB</span></div><button class="ins" data-ins="videos:${i}">插入正文</button></div>`).join('');
+    const withSph = SPH_SECS.includes($('#cSec').value);
+    $('#tVideos').innerHTML = draft.videos.map((f, i) => `<div class="thw${withSph ? ' thw-sph' : ''}"><div class="th vid"><video src="${f.preview}" muted preload="metadata"></video><button data-rm="videos:${i}">×</button><span>视频${i + 1} · ${(f.size / 1048576).toFixed(0)}MB</span></div><button class="ins" data-ins="videos:${i}">插入正文</button>${withSph ? `<input class="vsph" data-vs="${i}" value="${esc(f.sph || '')}" placeholder="视频号链接（选填）">` : ''}</div>`).join('');
+    v.querySelectorAll('[data-vs]').forEach(el => el.oninput = () => { draft.videos[+el.dataset.vs].sph = el.value; });
+    $('#cSphBox').hidden = !withSph || draft.videos.length > 0;
     const ask = $('#cSphAsk');
     if (ask) ask.hidden = !(SPH_SECS.includes($('#cSec').value) && draft.videos.length);
     $('#tFiles').innerHTML = draft.files.map((f, i) => `<div class="fileitem">📄 ${esc(f.name)} <span class="hint">${fmtSize(f.size)}</span><button data-rmf="${i}">×</button></div>`).join('');
@@ -312,9 +315,10 @@ function renderWrite() {
     for (const f of e.target.files) { f.preview = URL.createObjectURL(f); draft[k].push(f); }
     e.target.value = ''; drawThumbs();
     // 排球课堂、风采相册加了视频：提醒会压缩（课堂还会加水印），并问有没有视频号链接
-    if (k === 'videos' && SPH_SECS.includes($('#cSec').value) && !$('#cSph').value.trim()) {
-      toast($('#cSec').value === 'learn' ? '视频会压缩成高清并加水印；如果已发在视频号，请填上视频号链接' : '视频会压缩成高清；如果已发在视频号，请填上视频号链接');
-      $('#cSph').focus();
+    if (k === 'videos' && SPH_SECS.includes($('#cSec').value)) {
+      toast(($('#cSec').value === 'learn' ? '视频会压缩成高清并加水印' : '视频会压缩成高清') + '；已发在视频号的，请在该视频下面填上它的视频号链接');
+      const empty = [...v.querySelectorAll('[data-vs]')].find(el => !el.value.trim());
+      if (empty) empty.focus();
     }
   };
   $('#cPhotos').onchange = add('photos');
@@ -331,7 +335,6 @@ function renderWrite() {
     const k = sec.value;
     $('#cLearn').hidden = k !== 'learn';
     $('#cAlbumBox').hidden = k !== 'gallery';
-    $('#cSphBox').hidden = !SPH_SECS.includes(k);
     $('#cSphAsk').hidden = !(SPH_SECS.includes(k) && draft.videos.length);
     $('#cSphAskWhat').innerHTML = k === 'learn' ? '排球课堂的视频会<b>压缩成高清并在画面右下角加上 BISTU-Volleyball 水印</b>。' : '风采相册的视频会<b>压缩成高清</b>（3 分钟以上的改为 720p）。';
     $('#hintPhoto').textContent = ORIGINAL_PHOTO.includes(k)
@@ -341,7 +344,7 @@ function renderWrite() {
       ? '高清（1080p）并自动加 BISTU-Volleyball 水印；一个动作一段；3 分钟以上自动改 720p，最长约 7 分钟'
       : HQ_VIDEO.includes(k) ? '高清（1080p），符合条件的原片直接使用；3 分钟以上自动改 720p，最长约 7 分钟' : '自动压缩；建议 1 分钟以内';
   };
-  sec.onchange = hints;
+  sec.onchange = () => { hints(); drawThumbs(); };
   bindAlbumPicker('c');
   hints();
   drawThumbs();
@@ -353,8 +356,15 @@ async function submit() {
   if (!title) return toast('请填写标题', true);
   if (!text.trim() && !draft.photos.length && !draft.videos.length && !draft.files.length) return toast('正文、照片、视频、附件至少要有一样', true);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return toast('请选择日期', true);
-  const sph = SPH_SECS.includes(section) ? $('#cSph').value.trim().replace(/#.*$/, '') : '';
-  if (sph && !SPH_OK.test(sph)) return toast('视频号链接不对：请在视频号里点「···」→「复制链接」后粘贴（weixin.qq.com/sph/…）', true);
+  const BAD_SPH = '视频号链接不对：请在视频号里点「···」→「复制链接」后粘贴（weixin.qq.com/sph/…）';
+  // 整篇的视频号链接：只在没有上传视频文件时用；上传了视频的，每个视频各自的链接记在 f.sph
+  const sph = SPH_SECS.includes(section) && !draft.videos.length ? $('#cSph').value.trim().replace(/#.*$/, '') : '';
+  if (sph && !SPH_OK.test(sph)) return toast(BAD_SPH, true);
+  const vsph = draft.videos.map(f => SPH_SECS.includes(section) ? (f.sph || '').trim().replace(/#.*$/, '') : '');
+  const badV = vsph.findIndex(l => l && !SPH_OK.test(l));
+  if (badV >= 0) return toast(`视频${badV + 1}的${BAD_SPH}`, true);
+  const sameV = vsph.findIndex((l, i) => l && vsph.indexOf(l) < i);
+  if (sameV >= 0) return toast(`视频${sameV + 1}和视频${vsph.indexOf(vsph[sameV]) + 1}填了同一个视频号链接，请检查`, true);
   const album = section === 'gallery' ? readAlbumPicker('c') : {};
   if (!album) return;
   if (SPH_SECS.includes(section) && sph && !draft.videos.length && !draft.photos.length) {
@@ -362,8 +372,9 @@ async function submit() {
     if (!confirm('只填了视频号链接、没有上传视频：将自动获取视频号的封面，在网站上生成跳转视频号的卡片。继续吗？')) return;
     return submitChannelsOnly(sph, title, section, album);
   }
-  if (section === 'learn' && draft.videos.length && !sph &&
-      !confirm('没有填写视频号链接。\n\n如果这个视频已经发在协会视频号，建议附上链接：网页会注明“高清原版在视频号”并提供跳转。\n\n点「确定」直接提交，点「取消」返回填写。')) return $('#cSph').focus();
+  const noLink = vsph.map((l, i) => l ? 0 : i + 1).filter(Boolean);
+  if (section === 'learn' && noLink.length &&
+      !confirm(`视频${noLink.join('、')}没有填写视频号链接。\n\n如果已经发在协会视频号，建议在该视频下面附上链接：网页会注明“高清原版在视频号”并提供跳转。\n\n点「确定」直接提交，点「取消」返回填写。`)) return root.querySelector(`[data-vs="${noLink[0] - 1}"]`)?.focus();
   const btn = $('#cSubmit'), status = $('#cStatus');
   const step = s => { status.textContent = s; };
   busy = true; btn.disabled = true;
@@ -410,6 +421,7 @@ async function submit() {
         files.push({ path, blob });
         const v = { src: '/' + path };
         if (duration) v.duration = duration;
+        if (vsph[i]) v.channels = normSph(vsph[i]);
         const cover = await media.poster(blob, quality === 'high' ? 1280 : 640).catch(() => null);
         if (cover) { files.push({ path: `${dir}/v${i + 1}.jpg`, blob: cover }); v.poster = `/${dir}/v${i + 1}.jpg`; }
         videos.push(v);
@@ -458,7 +470,7 @@ function videoDuration(file) {
 function preview(p) {
   return `
     <div class="pv-media">
-      ${p.videos.map(v => `<video controls preload="none" src="${url(v.src)}" ${v.poster ? `poster="${url(v.poster)}"` : ''}></video>`).join('')}
+      ${p.videos.map(v => `<div class="pvv"><video controls preload="none" src="${url(v.src)}" ${v.poster ? `poster="${url(v.poster)}"` : ''}></video>${v.channels ? `<a class="hint" href="${esc(v.channels)}" target="_blank">视频号：${esc(v.channels)}</a>` : ''}</div>`).join('')}
       ${p.images.map(im => `<a href="${url(im)}" target="_blank"><img loading="lazy" src="${url(im)}"></a>`).join('')}
     </div>${attachList(p.attachments)}`;
 }
@@ -536,7 +548,7 @@ async function renderPending() {
         </div>
         <div class="row eLearn"${p.section === 'learn' ? '' : ' hidden'}>${learnSelects('e', p)}</div>
         <div class="row eGallery"${p.section === 'gallery' ? '' : ' hidden'}><label>小相册<select class="eAlbum"><option value="">请选择小相册</option>${albums.map(a => `<option value="${esc(a.id)}"${a.id === p.album ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}${p.album_name && !albums.some(a => a.id === p.album) ? `<option value="${esc(p.album)}" selected>新建：${esc(p.album_name)}</option>` : ''}</select></label></div>
-        <div class="row eSphRow"${SPH_SECS.includes(p.section) ? '' : ' hidden'}><label>视频号链接（选填）<input class="eSph" value="${esc(p.channels || '')}" placeholder="https://weixin.qq.com/sph/..."></label></div>
+        <div class="row eSphRow"${SPH_SECS.includes(p.section) && !p.videos.length ? '' : ' hidden'}><label>视频号链接（选填）<input class="eSph" value="${esc(p.channels || '')}" placeholder="https://weixin.qq.com/sph/..."></label></div>
         ${p.cover ? `<div class="cover-pick"><span>首页封面（卡片按这个范围截取）</span>
           <div class="cover-box"><img class="eCoverImg" src="${url(p.cover)}" style="object-position: 50% ${esc(p.cover_pos || '50%')}"></div>
           <select class="eCoverPos">${COVER_POS.map(([v, n]) => `<option value="${v}"${v === (p.cover_pos || '50%') ? ' selected' : ''}>${n}</option>`).join('')}</select></div>` : ''}
@@ -550,11 +562,14 @@ async function renderPending() {
     const p = posts[+card.dataset.i];
     // 可删除单张照片：st 记录当前保留的照片，删掉的在发布时一并从仓库删除
     const st = { images: [...p.images], ratios: p.ratios && p.ratios.length === p.images.length ? [...p.ratios] : null,
-      originals: p.originals && p.originals.length === p.images.length ? [...p.originals] : null, removed: [], cover: p.cover };
+      originals: p.originals && p.originals.length === p.images.length ? [...p.originals] : null, removed: [], cover: p.cover,
+      vsph: p.videos.map(v => v.channels || '') };
     const drawMedia = () => {
       const box = card.querySelector('.eMedia');
-      box.innerHTML = p.videos.map(v => `<video controls preload="none" src="${url(v.src)}" ${v.poster ? `poster="${url(v.poster)}"` : ''}></video>`).join('') +
+      const withSph = SPH_SECS.includes(card.querySelector('.eSec').value);
+      box.innerHTML = p.videos.map((v, k) => `<div class="pvv"><video controls preload="none" src="${url(v.src)}" ${v.poster ? `poster="${url(v.poster)}"` : ''}></video><input class="evSph" data-k="${k}" value="${esc(st.vsph[k])}" placeholder="视频${k + 1}的视频号链接（选填）"${withSph ? '' : ' hidden'}></div>`).join('') +
         st.images.map((im, k) => `<div class="pvi"><a href="${url(im)}" target="_blank"><img loading="lazy" src="${url(im)}"></a><span>图${k + 1}${im === st.cover ? ' · 封面' : ''}</span><button data-del="${k}" title="删除这张照片">×</button></div>`).join('');
+      box.querySelectorAll('.evSph').forEach(el => el.oninput = () => { st.vsph[+el.dataset.k] = el.value; });
       box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
         const k = +b.dataset.del;
         const [gone] = st.images.splice(k, 1);
@@ -577,7 +592,8 @@ async function renderPending() {
     secSel.addEventListener('change', () => {
       card.querySelector('.eLearn').hidden = secSel.value !== 'learn';
       card.querySelector('.eGallery').hidden = secSel.value !== 'gallery';
-      card.querySelector('.eSphRow').hidden = !SPH_SECS.includes(secSel.value);
+      card.querySelector('.eSphRow').hidden = !SPH_SECS.includes(secSel.value) || p.videos.length > 0;
+      card.querySelectorAll('.evSph').forEach(el => { el.hidden = !SPH_SECS.includes(secSel.value); });
     });
     const sel = card.querySelector('.eCoverPos');
     if (sel) sel.onchange = () => { card.querySelector('.eCoverImg').style.objectPosition = `50% ${sel.value}`; };
@@ -588,9 +604,19 @@ async function renderPending() {
       if (q.section === 'learn') { q.topic = card.querySelector('.eTopic').value; q.level = card.querySelector('.eLevel').value; }
       else { delete q.topic; delete q.level; }
       if (SPH_SECS.includes(q.section)) {
-        const sl = card.querySelector('.eSph').value.trim();
-        if (sl && !SPH_OK.test(sl)) throw new Error('视频号链接不对，请重新复制（weixin.qq.com/sph/…）');
-        q.channels = sl ? normSph(sl) : undefined;
+        if (p.videos.length) {
+          // 每个视频各自的视频号链接
+          q.videos = p.videos.map((v, k) => {
+            const sl = st.vsph[k].trim().replace(/#.*$/, '');
+            if (sl && !SPH_OK.test(sl)) throw new Error(`视频${k + 1}的视频号链接不对，请重新复制（weixin.qq.com/sph/…）`);
+            const { channels, ...rest } = v;
+            return sl ? { ...rest, channels: normSph(sl) } : rest;
+          });
+        } else {
+          const sl = card.querySelector('.eSph').value.trim();
+          if (sl && !SPH_OK.test(sl)) throw new Error('视频号链接不对，请重新复制（weixin.qq.com/sph/…）');
+          q.channels = sl ? normSph(sl) : undefined;
+        }
       }
       if (!q.title || !/^\d{4}-\d{2}-\d{2}$/.test(q.date)) throw new Error('标题和日期不能为空');
       // 风采相册：投稿时新建的小相册，在这里正式加进 albums.json 并建好相册页面（同名的并入已有相册）

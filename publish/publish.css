@@ -125,3 +125,8 @@ code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
 .alb-row { align-items: flex-end; margin-bottom: 8px; }
 .alb-row label { flex: 1 1 220px; }
 .alb-n { padding-bottom: 10px; min-width: 40px; }
+/* 视频缩略图下面的视频号链接输入框 */
+.thw.thw-sph { width: 200px; }
+.pub input.vsph { padding: 5px 8px; font-size: 12px; }
+.pvv { display: flex; flex-direction: column; gap: 4px; }
+.pub input.evSph { padding: 5px 8px; font-size: 13px; }

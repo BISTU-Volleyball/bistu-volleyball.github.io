@@ -187,3 +187,7 @@ img, video { max-width: 100%; display: block; }
 .album-crumb { margin-top: 24px; }
 .album-crumb + .page-title { margin-top: 6px; }
 .sub-title { font-size: 19px; margin: 32px 0 14px; }
+/* 每个视频下面的「高清原版在视频号」 */
+.sph-v { display: flex; align-items: center; gap: 10px; margin-top: 6px; padding: 7px 12px; border-radius: 10px; background: #eafaf1; border: 1px solid #bfeccf; color: #14532d; font-size: 14px; }
+.sph-v .sph-note-ic { width: 26px; height: 26px; font-size: 12px; }
+.vfig .sph-v { font-size: 13px; }
