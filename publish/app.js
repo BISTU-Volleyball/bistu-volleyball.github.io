@@ -28,7 +28,7 @@ let isAdmin = false;
 let roleCheck = 0; // 管理员检测的 HTTP 状态码，显示在「设置」里便于排查
 let tab = 'compose';
 let busy = false;
-const draft = { photos: [], videos: [], files: [] }; // 待提交的 File
+const draft = { photos: [], videos: [], files: [], cover: null }; // 待提交的 File（cover：自己上传的封面，选填）
 
 // 邀请链接 #k=钥匙&n=名字：存下后立刻从地址栏抹掉
 {
@@ -272,6 +272,10 @@ function renderWrite() {
           哪个视频<b>已经发在协会视频号</b>，就在它下面填上<b>它自己的</b>视频号链接，网页会在该视频下注明“高清原版在视频号”并附跳转。</div>
       </div>
       <div class="media">
+        <div class="media-head"><b>封面</b><span class="hint">选填。不传时用第一张照片；没有照片就用第一个视频的画面</span><label class="btn">＋ 上传封面<input id="cCover" type="file" accept="image/*" hidden></label></div>
+        <div class="thumbs" id="tCover"></div>
+      </div>
+      <div class="media">
         <div class="media-head"><b>附件</b><span class="hint">规则文件、讲义等（PDF、Word、PPT、Excel），每个不超过 ${MAX_FILE_MB}MB，读者可以在线查看或下载</span><label class="btn">＋ 添加附件<input id="cFiles" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" multiple hidden></label></div>
         <div class="files" id="tFiles"></div>
       </div>
@@ -287,6 +291,8 @@ function renderWrite() {
     $('#cSphBox').hidden = !withSph || draft.videos.length > 0;
     const ask = $('#cSphAsk');
     if (ask) ask.hidden = !(SPH_SECS.includes($('#cSec').value) && draft.videos.length);
+    $('#tCover').innerHTML = draft.cover ? `<div class="thw"><div class="th"><img src="${draft.cover.preview}"><button data-rmc="1">×</button><span>封面</span></div></div>` : '';
+    v.querySelectorAll('[data-rmc]').forEach(b => b.onclick = () => { URL.revokeObjectURL(draft.cover.preview); draft.cover = null; drawThumbs(); });
     $('#tFiles').innerHTML = draft.files.map((f, i) => `<div class="fileitem">📄 ${esc(f.name)} <span class="hint">${fmtSize(f.size)}</span><button data-rmf="${i}">×</button></div>`).join('');
     v.querySelectorAll('[data-rmf]').forEach(b => b.onclick = () => { draft.files.splice(+b.dataset.rmf, 1); drawThumbs(); });
     v.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => {
@@ -322,6 +328,13 @@ function renderWrite() {
     }
   };
   $('#cPhotos').onchange = add('photos');
+  $('#cCover').onchange = e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    if (draft.cover) URL.revokeObjectURL(draft.cover.preview);
+    f.preview = URL.createObjectURL(f); draft.cover = f;
+    e.target.value = ''; drawThumbs();
+  };
   $('#cVideos').onchange = add('videos');
   $('#cFiles').onchange = e => {
     for (const f of e.target.files) {
@@ -435,11 +448,19 @@ async function submit() {
     }
     const learn = section === 'learn' ? { topic: $('.cTopic').value, level: $('.cLevel').value } : {};
     if (sph) learn.channels = normSph(sph);
-    const post = { title, date, section, ...album, text, author: me.name, cover: images[0] || videos[0]?.poster, images, originals: keepOrig ? originals : undefined, ratios, videos, attachments, ...learn, submitted: new Date().toISOString() };
+    let cover = images[0] || videos[0]?.poster;
+    if (draft.cover) {
+      step('处理封面');
+      const { blob } = await shrinkImage(draft.cover);
+      files.push({ path: `${dir}/cover.jpg`, blob });
+      cover = `/${dir}/cover.jpg`;
+    }
+    const post = { title, date, section, ...album, text, author: me.name, cover, images, originals: keepOrig ? originals : undefined, ratios, videos, attachments, ...learn, submitted: new Date().toISOString() };
     files.push({ path: `_pending/${slug}.md`, text: buildPost(post) });
     await commitFiles(cfg(), files, `投稿：${title}（${me.name}）`, step);
     [...draft.photos, ...draft.videos].forEach(f => URL.revokeObjectURL(f.preview));
-    draft.photos = []; draft.videos = []; draft.files = [];
+    if (draft.cover) URL.revokeObjectURL(draft.cover.preview);
+    draft.photos = []; draft.videos = []; draft.files = []; draft.cover = null;
     if (album.album_name) albumCache = null;
     toast('已提交，等待管理员审核');
     tab = 'pending';
@@ -549,9 +570,10 @@ async function renderPending() {
         <div class="row eLearn"${p.section === 'learn' ? '' : ' hidden'}>${learnSelects('e', p)}</div>
         <div class="row eGallery"${p.section === 'gallery' ? '' : ' hidden'}><label>小相册<select class="eAlbum"><option value="">请选择小相册</option>${albums.map(a => `<option value="${esc(a.id)}"${a.id === p.album ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}${p.album_name && !albums.some(a => a.id === p.album) ? `<option value="${esc(p.album)}" selected>新建：${esc(p.album_name)}</option>` : ''}</select></label></div>
         <div class="row eSphRow"${SPH_SECS.includes(p.section) && !p.videos.length ? '' : ' hidden'}><label>视频号链接（选填）<input class="eSph" value="${esc(p.channels || '')}" placeholder="https://weixin.qq.com/sph/..."></label></div>
-        ${p.cover ? `<div class="cover-pick"><span>首页封面（卡片按这个范围截取）</span>
-          <div class="cover-box"><img class="eCoverImg" src="${url(p.cover)}" style="object-position: 50% ${esc(p.cover_pos || '50%')}"></div>
-          <select class="eCoverPos">${COVER_POS.map(([v, n]) => `<option value="${v}"${v === (p.cover_pos || '50%') ? ' selected' : ''}>${n}</option>`).join('')}</select></div>` : ''}
+        <div class="cover-pick"><span>首页封面（卡片按这个范围截取）</span>
+          <div class="cover-box"><img class="eCoverImg" src="${p.cover ? url(p.cover) : ''}" style="object-position: 50% ${esc(p.cover_pos || '50%')}"${p.cover ? '' : ' hidden'}></div>
+          <select class="eCoverPos">${COVER_POS.map(([v, n]) => `<option value="${v}"${v === (p.cover_pos || '50%') ? ' selected' : ''}>${n}</option>`).join('')}</select>
+          <label class="btn">上传新封面<input type="file" class="eCoverFile" accept="image/*" hidden></label></div>
         <label>正文<textarea class="eText" rows="6">${esc(p.text)}</textarea></label>`
       : `<h3>${esc(p.title)}</h3><div class="meta">${esc(secName(p.section))}${p.album_name ? ` · 新建相册：${esc(p.album_name)}` : ''} · ${esc(p.date)}</div><div class="pv-text">${p.text.split('\n').map(s => `<p>${esc(s)}</p>`).join('')}</div>`}
       ${isAdmin ? '<div class="pv-media eMedia"></div>' + attachList(p.attachments) : preview(p)}
@@ -582,7 +604,7 @@ async function renderPending() {
         if (gone === st.cover) {
           st.cover = st.images[0] || '';
           const ci = card.querySelector('.eCoverImg');
-          if (ci) { if (st.cover) ci.src = url(st.cover); else card.querySelector('.cover-pick').remove(); }
+          if (!st.coverFile) { ci.hidden = !st.cover; if (st.cover) ci.src = url(st.cover); }
         }
         drawMedia();
       });
@@ -597,10 +619,27 @@ async function renderPending() {
     });
     const sel = card.querySelector('.eCoverPos');
     if (sel) sel.onchange = () => { card.querySelector('.eCoverImg').style.objectPosition = `50% ${sel.value}`; };
+    card.querySelector('.eCoverFile').onchange = e => {
+      const f = e.target.files[0];
+      if (!f) return;
+      st.coverFile = f;
+      const ci = card.querySelector('.eCoverImg');
+      ci.src = URL.createObjectURL(f); ci.hidden = false;
+    };
     card.querySelector('[data-act="ok"]').onclick = () => act(card, async () => {
       const pos = card.querySelector('.eCoverPos')?.value;
       const q = { ...p, title: card.querySelector('.eTitle').value.trim(), section: card.querySelector('.eSec').value, date: card.querySelector('.eDate').value, text: card.querySelector('.eText').value, cover_pos: pos && pos !== '50%' ? pos : undefined, approved_by: me.name,
         images: st.images, originals: st.originals || undefined, ratios: st.ratios || undefined, cover: st.cover || undefined };
+      // 换了封面：新封面用新文件名（避免浏览器缓存旧图），旧的自传封面（不是照片、不是视频画面）一并删掉
+      const coverFiles = [];
+      if (st.coverFile) {
+        const { blob } = await shrinkImage(st.coverFile);
+        const path = `assets/posts/${p.slug}/cover-${Date.now().toString(36)}.jpg`;
+        coverFiles.push({ path, blob });
+        const old = st.cover;
+        if (old && /\/cover[^/]*\.jpg$/.test(old) && !st.images.includes(old)) coverFiles.push({ path: old.replace(/^\//, ''), del: true });
+        q.cover = '/' + path;
+      }
       if (q.section === 'learn') { q.topic = card.querySelector('.eTopic').value; q.level = card.querySelector('.eLevel').value; }
       else { delete q.topic; delete q.level; }
       if (SPH_SECS.includes(q.section)) {
@@ -633,7 +672,7 @@ async function renderPending() {
         }
       } else delete q.album;
       delete q.album_name;
-      await commitFiles(cfg(), [{ path: `_posts/${p.slug}.md`, text: buildPost(q) }, { path: p.path, del: true }, ...st.removed.map(f => ({ path: f.replace(/^\//, ''), del: true })), ...extra], `发布：${q.title}（审核：${me.name}）`);
+      await commitFiles(cfg(), [{ path: `_posts/${p.slug}.md`, text: buildPost(q) }, { path: p.path, del: true }, ...st.removed.map(f => ({ path: f.replace(/^\//, ''), del: true })), ...extra, ...coverFiles], `发布：${q.title}（审核：${me.name}）`);
       albumCache = null;
       return '已发布，约 1 分钟后出现在网站上';
     });
