@@ -120,3 +120,6 @@ body { overflow-x: hidden; }
   .h-wall { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 120px; gap: 8px; }
   .h-wall span { opacity: 1; }
 }
+/* 精彩瞬间里的视频：中间一个播放标记 */
+.h-wall .h-play { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(0, 0, 0, .45); color: #fff; font-style: normal; font-size: 18px; display: grid; place-items: center; padding-left: 3px; box-shadow: 0 0 0 2px rgba(255, 255, 255, .8); pointer-events: none; }
+.h-wall a:nth-child(8n+1) .h-play { width: 64px; height: 64px; margin: -32px 0 0 -32px; font-size: 24px; }

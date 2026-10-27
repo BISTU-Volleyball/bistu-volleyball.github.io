@@ -878,7 +878,7 @@ async function renderHome() {
   $('#hPick').innerHTML = posts.map((p, pi) => `
     <div class="hs-post">
       <div class="meta">${esc(p.date)} · ${esc(p.title)}</div>
-      <div class="hs-thumbs">${p.images.map(im => `
+      <div class="hs-thumbs">${[...new Set([p.cover, ...p.images].filter(Boolean))].map(im => `
         <div class="hs-t"><img loading="lazy" src="${url(im)}">
           <div><button data-kind="hero" data-pick="${esc(im)}" data-post="${pi}">大图</button><button data-kind="wall" data-pick="${esc(im)}" data-post="${pi}">照片墙</button><button data-kind="notice" data-pick="${esc(im)}" data-post="${pi}">活动图</button></div>
         </div>`).join('')}</div>

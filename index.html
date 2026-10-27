@@ -85,21 +85,27 @@ home: true
   <div class="h-wall">
     {% comment %}
       照片墙：在发布助手「🏠 首页」里手动挑选的照片优先（_data/home.json 的 wall）；
-      没挑选时自动取最新 8 篇报道，每篇一张横幅现场照（跳过开头的海报和封面、方形拼图）
+      没挑选时自动取最新 8 篇（新闻、赛事、风采相册，不含排球课堂），每篇一张：
+      报道取一张横幅现场照（跳过开头的海报和封面、方形拼图）；风采相册取封面，视频的加 ▶
     {% endcomment %}
     {% if site.data.home.wall.size > 0 %}
       {% for w in site.data.home.wall limit: 8 %}{% assign wp = site.posts | where: "url", w.post | first %}
-      <a href="{{ w.post | relative_url }}"><img src="{{ w.src | relative_url }}" alt="" loading="lazy"><span>{{ wp.title | truncate: 24 }}</span></a>
+      {% assign wv = wp.videos | size %}<a href="{{ w.post | relative_url }}"><img src="{{ w.src | relative_url }}" alt="" loading="lazy">{% if wv > 0 or wp.channels %}<i class="h-play">▶</i>{% endif %}<span>{{ wp.title | truncate: 24 }}</span></a>
       {% endfor %}
     {% else %}
       {% assign n = 0 %}
-      {% for p in news %}{% if n < 8 %}
-        {% assign pick = '' %}
+      {% for p in site.posts %}{% if n < 8 and p.section != 'learn' %}
+        {% assign pick = '' %}{% assign isv = false %}
+        {% if p.section == 'gallery' %}
+          {% assign nv = p.videos | size %}{% if nv > 0 or p.channels %}{% assign isv = true %}{% endif %}
+          {% assign pick = p.cover | default: '' %}{% if pick == '' and p.images.size > 0 %}{% assign pick = p.images.first %}{% endif %}
+        {% else %}
         {% for im in p.images %}{% assign r = p.ratios[forloop.index0] %}
           {% if pick == '' and forloop.index0 >= 2 and r >= 1.2 and r <= 1.95 and im != p.cover %}{% assign pick = im %}{% endif %}
         {% endfor %}
+        {% endif %}
         {% if pick != '' %}{% assign n = n | plus: 1 %}
-        <a href="{{ p.url | relative_url }}"><img src="{{ pick | relative_url }}" alt="" loading="lazy"><span>{{ p.title | truncate: 24 }}</span></a>
+        <a href="{% include post-href.html post=p %}"><img src="{{ pick | relative_url }}" alt="" loading="lazy">{% if isv %}<i class="h-play">▶</i>{% endif %}<span>{{ p.title | truncate: 24 }}</span></a>
         {% endif %}
       {% endif %}{% endfor %}
     {% endif %}
