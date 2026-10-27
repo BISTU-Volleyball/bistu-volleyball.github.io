@@ -4,4 +4,12 @@ title: 风采相册
 summary: 北京信息科技大学教职工排球协会的风采相册。
 list_section: gallery
 ---
-{% include list.html section="gallery" name="风采相册" %}
+{% comment %}小相册列表在 _data/albums.json（发布助手管理）；没归到任何小相册的放在最后{% endcomment %}
+<h1 class="page-title">风采相册</h1>
+{% if site.data.albums.size > 0 %}<div class="grid">{% for a in site.data.albums %}{% include album-card.html album=a %}{% endfor %}</div>{% endif %}
+{% comment %}没有 album、或 album 指向已删除相册的，都算"其他照片"{% endcomment %}
+{% assign gposts = site.posts | where: "section", "gallery" %}{% assign ids = site.data.albums | map: "id" | join: "," | prepend: "," | append: "," %}{% assign nloose = 0 %}{% assign loose = '' | split: '' %}
+{% for p in gposts %}{% assign key = ',' | append: p.album | append: ',' %}{% unless p.album and ids contains key %}{% assign loose = loose | push: p %}{% endunless %}{% endfor %}{% assign nloose = loose | size %}
+{% if nloose > 0 %}<h2 class="sub-title">其他照片</h2>
+<div class="grid">{% for p in loose %}{% include card.html post=p %}{% endfor %}</div>{% endif %}
+{% if site.data.albums.size == 0 and nloose == 0 %}<p class="empty">还没有内容，敬请期待。</p>{% endif %}

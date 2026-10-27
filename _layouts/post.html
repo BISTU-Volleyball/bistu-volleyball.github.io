@@ -35,7 +35,8 @@ layout: default
   {% endif %}
 {% endfor %}
 <article class="post">
-  <div class="crumb">{% if sec %}<a href="{{ sec.url | relative_url }}">{{ sec.name }}</a> ›{% endif %}</div>
+  {% assign al = site.data.albums | where: "id", page.album | first %}
+  <div class="crumb">{% if sec %}<a href="{{ sec.url | relative_url }}">{{ sec.name }}</a> ›{% endif %}{% if al %} <a href="{{ '/gallery/' | append: al.id | append: '/' | relative_url }}">{{ al.name }}</a> ›{% endif %}</div>
   <h1>{{ page.title }}</h1>
   <div class="meta">{{ page.date | date: '%Y年%-m月%-d日' }}{% if page.author %} · {{ page.author }}{% endif %}{% if page.topic %}<span class="lt-topic">{{ page.topic }}</span>{% endif %}{% if page.level %}<span class="lt-level lt-{% if page.level == '入门' %}easy{% else %}hard{% endif %}">{{ page.level }}</span>{% endif %}</div>
   {% assign nv = page.videos | size %}

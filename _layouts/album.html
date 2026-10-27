@@ -1,0 +1,9 @@
+---
+layout: default
+---
+{% comment %}风采相册里的一个小相册：页面文件 gallery/<编号>/index.html 只写 title 和 album，由发布助手自动创建{% endcomment %}
+{% assign posts = site.posts | where: "album", page.album %}
+<div class="crumb album-crumb"><a href="{{ '/gallery/' | relative_url }}">风采相册</a> ›</div>
+<h1 class="page-title">{{ page.title }}</h1>
+{% if posts.size == 0 %}<p class="empty">这个相册还没有照片和视频，敬请期待。</p>{% else %}
+<div class="grid">{% for p in posts %}{% include card.html post=p %}{% endfor %}</div>{% endif %}

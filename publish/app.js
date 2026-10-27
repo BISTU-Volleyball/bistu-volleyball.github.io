@@ -18,6 +18,7 @@ const attachList = list => (list || []).length ? `<div class="pv-files">${list.m
 const LS = 'bv_pub';
 // 各栏目的画质：排球课堂、风采相册用高清视频；风采相册的照片保留原图（其余栏目照片缩到长边 1600）
 const HQ_VIDEO = ['learn', 'gallery'], ORIGINAL_PHOTO = ['gallery'];
+const SPH_SECS = ['learn', 'gallery']; // 可以附视频号链接的栏目
 const MAX_MB = { standard: 50, high: 70 };
 const COVER_POS = [['15%', '偏上'], ['50%', '居中'], ['85%', '偏下']]; // 首页卡片封面的截取位置
 const MARK = { photos: '图', videos: '视频' }; // 正文里插图标记：【图1】【视频1】
@@ -63,7 +64,7 @@ function explain(e) {
 
 // ---------- 文章文件格式 ----------
 // front matter 每行一个 key: JSON 值（JSON 也是合法 YAML）；正文每段一行，包在 raw 里防止 Liquid 误解析
-const FM_KEYS = ['layout', 'title', 'date', 'section', 'author', 'summary', 'cover', 'cover_pos', 'images', 'originals', 'ratios', 'videos', 'attachments', 'channels', 'topic', 'level', 'submitted', 'submitted_by', 'source_url', 'approved_by'];
+const FM_KEYS = ['layout', 'title', 'date', 'section', 'album', 'album_name', 'author', 'summary', 'cover', 'cover_pos', 'images', 'originals', 'ratios', 'videos', 'attachments', 'channels', 'topic', 'level', 'submitted', 'submitted_by', 'source_url', 'approved_by'];
 
 function buildPost(p) {
   const paras = p.text.split('\n').map(s => s.trim().replace(/\{%\s*endraw\s*%\}/g, '')).filter(Boolean);
@@ -153,6 +154,39 @@ async function verify() {
   return true;
 }
 
+// ---------- 风采相册的小相册 ----------
+// _data/albums.json：[{ id, name }]，排在前面的显示在前面；每个小相册一个页面 gallery/<id>/index.html（_layouts/album.html）
+// 文章 front matter 的 album 存相册编号；投稿时新建的相册先记在 album_name 里，审核通过时才写进 albums.json
+const NEW_ALBUM = '__new';
+const loadAlbums = async () => { const a = await readData('albums'); return Array.isArray(a) ? a : []; };
+const newAlbumId = () => `${today().replace(/-/g, '')}-${crypto.getRandomValues(new Uint16Array(1))[0].toString(16).padStart(4, '0')}`;
+const albumPage = a => ({ path: `gallery/${a.id}/index.html`, text: `---\nlayout: album\ntitle: ${JSON.stringify(a.name)}\nalbum: ${JSON.stringify(a.id)}\n---\n` });
+const albumsFile = list => ({ path: '_data/albums.json', text: JSON.stringify(list.map(({ id, name }) => ({ id, name })), null, 1) + '\n' });
+// 投稿用的小相册选择框（x 是 id 前缀：c 自己写 / i 转载）
+const albumPicker = x => `
+      <div id="${x}AlbumBox" hidden><div class="row">
+        <label>小相册<select id="${x}Album"><option value="">读取中…</option></select></label>
+        <label id="${x}AlbumNewL" hidden>新相册名称<input id="${x}AlbumNew" maxlength="30" placeholder="例如：2027年教职工迎新赛"></label>
+      </div><p class="hint">选一个已有的小相册，或选「＋ 新建小相册」；新建的相册审核通过后出现在网站上。</p></div>`;
+let albumCache = null;
+function bindAlbumPicker(x) {
+  const sel = $(`#${x}Album`), fill = list => {
+    sel.innerHTML = '<option value="">请选择小相册</option>' + list.map(a => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('') + `<option value="${NEW_ALBUM}">＋ 新建小相册…</option>`;
+  };
+  sel.onchange = () => { $(`#${x}AlbumNewL`).hidden = sel.value !== NEW_ALBUM; if (sel.value === NEW_ALBUM) $(`#${x}AlbumNew`).focus(); };
+  (albumCache ? Promise.resolve(albumCache) : loadAlbums().then(l => albumCache = l)).then(fill).catch(() => fill([]));
+}
+// 读选择结果：{ album } 或新建的 { album, album_name }；没选好返回 null 并提示
+function readAlbumPicker(x) {
+  const v = $(`#${x}Album`).value;
+  if (!v) { toast('请选择小相册（或新建一个）', true); $(`#${x}Album`).focus(); return null; }
+  if (v !== NEW_ALBUM) return { album: v };
+  const name = $(`#${x}AlbumNew`).value.trim();
+  if (!name) { toast('请填写新相册的名称', true); $(`#${x}AlbumNew`).focus(); return null; }
+  const same = (albumCache || []).find(a => a.name === name);
+  return same ? { album: same.id } : { album: newAlbumId(), album_name: name };
+}
+
 // ---------- 投稿 ----------
 let composeMode = 'write';
 function renderCompose() {
@@ -166,12 +200,12 @@ function renderCompose() {
 // 视频号链接：weixin.qq.com/sph/<编号> 或 channels.weixin.qq.com/...?id=<编号>，统一成短链接
 const SPH_OK = /^https:\/\/(weixin\.qq\.com\/sph\/[A-Za-z0-9_-]+|channels\.weixin\.qq\.com\/.*[?&]id=[A-Za-z0-9_-]+)/;
 const normSph = u => { const m = u.match(/sph\/([A-Za-z0-9_-]+)|[?&]id=([A-Za-z0-9_-]+)/); return m ? `https://weixin.qq.com/sph/${m[1] || m[2]}` : u; };
-async function submitChannelsOnly(link, title) {
+async function submitChannelsOnly(link, title, section, album) {
   const btn = $('#cSubmit');
   busy = true; btn.disabled = true;
   try {
     const id = `${Date.now()}-${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).slice(0, 4)}`;
-    const req = { url: normSph(link), section: 'learn', by: me.name, at: new Date().toISOString(), title, topic: $('.cTopic').value, level: $('.cLevel').value };
+    const req = { url: normSph(link), section, by: me.name, at: new Date().toISOString(), title, ...(section === 'learn' ? { topic: $('.cTopic').value, level: $('.cLevel').value } : {}), ...album };
     await commitFiles(cfg(), [{ path: `_import/${id}.json`, text: JSON.stringify(req, null, 1) + '\n' }], `转载请求：${req.url}（${me.name}）`);
     toast('已提交，约 1 分钟后在「待审核」里出现');
     tab = 'pending'; busy = false; render();
@@ -187,18 +221,22 @@ function renderImport() {
     <div class="panel">
       <label>文章链接<input id="iUrl" placeholder="https://mp.weixin.qq.com/s/..."></label>
       <p class="hint">支持<b>公众号文章</b>、<b>视频号视频</b>和学校新闻网（news.bistu.edu.cn）。在微信里打开文章或视频 → 右上角「···」→「复制链接」。视频号的视频不会搬到网站上，网站会生成一张卡片，点击直接跳到视频号观看（标题、封面自动获取），不占网站空间、不限时长。</p>
-      <label>栏目<select id="iSec">${SECTIONS.map(s => `<option value="${s.key}">${s.name}</option>`).join('')}</select></label>
+      <label>栏目<select id="iSec">${SECTIONS.map(s => `<option value="${s.key}">${s.name}</option>`).join('')}</select></label>${albumPicker('i')}
       <p class="hint">提交后网站会自动抓取标题、日期、正文和照片，按原文顺序排好，约 1~2 分钟后出现在「待审核」里，由管理员检查后发布。</p>
       <button class="primary" id="iGo">开始转载</button>
     </div>`;
+  bindAlbumPicker('i');
+  $('#iSec').onchange = () => { $('#iAlbumBox').hidden = $('#iSec').value !== 'gallery'; };
   $('#iGo').onclick = async () => {
     const link = $('#iUrl').value.trim().replace(/#.*$/, '');
     if (!IMPORT_OK.test(link)) return toast('请粘贴公众号文章（mp.weixin.qq.com/s/…）、视频号（weixin.qq.com/sph/…）或学校新闻网的链接', true);
+    const section = $('#iSec').value, album = section === 'gallery' ? readAlbumPicker('i') : {};
+    if (!album) return;
     const btn = $('#iGo');
     busy = true; btn.disabled = true;
     try {
       const id = `${Date.now()}-${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).slice(0, 4)}`;
-      const req = { url: link, section: $('#iSec').value, by: me.name, at: new Date().toISOString() };
+      const req = { url: link, section, by: me.name, at: new Date().toISOString(), ...album };
       await commitFiles(cfg(), [{ path: `_import/${id}.json`, text: JSON.stringify(req, null, 1) + '\n' }], `转载请求：${link}（${me.name}）`);
       toast('已提交，约 1~2 分钟后在「待审核」里出现');
       tab = 'pending'; busy = false; render();
@@ -216,7 +254,7 @@ function renderWrite() {
         <label>栏目<select id="cSec">${SECTIONS.map(s => `<option value="${s.key}">${s.name}</option>`).join('')}</select></label>
         <label>日期<input id="cDate" type="date" value="${today()}"></label>
       </div>
-      <div class="row" id="cLearn" hidden>${learnSelects('c')}</div>
+      <div class="row" id="cLearn" hidden>${learnSelects('c')}</div>${albumPicker('c')}
       <div id="cSphBox" hidden>
         <label>视频号链接（选填）<input id="cSph" placeholder="https://weixin.qq.com/sph/..."></label>
         <p class="hint">在视频号里点「···」→「复制链接」。有视频文件时，网页播放压缩版并注明「高清原版在视频号」；只有链接时，网站生成跳转视频号的卡片。</p>
@@ -230,7 +268,7 @@ function renderWrite() {
       <div class="media">
         <div class="media-head"><b>视频</b><span class="hint" id="hintVideo"></span><label class="btn">＋ 添加视频<input id="cVideos" type="file" accept="video/*" multiple hidden></label></div>
         <div class="thumbs" id="tVideos"></div>
-        <div class="sph-ask" id="cSphAsk" hidden>📌 排球课堂的视频会<b>压缩成 1080p 高清并在画面右下角加上 BISTU-Volleyball 水印</b>。<br>
+        <div class="sph-ask" id="cSphAsk" hidden>📌 <span id="cSphAskWhat"></span><br>
           如果这个视频<b>已经发在协会视频号</b>，请在上方「视频号链接」里填上，网页会注明“高清原版在视频号”并附跳转。</div>
       </div>
       <div class="media">
@@ -245,7 +283,7 @@ function renderWrite() {
     $('#tPhotos').innerHTML = draft.photos.map((f, i) => `<div class="thw"><div class="th"><img src="${f.preview}"><button data-rm="photos:${i}">×</button><span>${i === 0 ? '封面 · ' : ''}图${i + 1}</span></div><button class="ins" data-ins="photos:${i}">插入正文</button></div>`).join('');
     $('#tVideos').innerHTML = draft.videos.map((f, i) => `<div class="thw"><div class="th vid"><video src="${f.preview}" muted preload="metadata"></video><button data-rm="videos:${i}">×</button><span>视频${i + 1} · ${(f.size / 1048576).toFixed(0)}MB</span></div><button class="ins" data-ins="videos:${i}">插入正文</button></div>`).join('');
     const ask = $('#cSphAsk');
-    if (ask) ask.hidden = !($('#cSec').value === 'learn' && draft.videos.length);
+    if (ask) ask.hidden = !(SPH_SECS.includes($('#cSec').value) && draft.videos.length);
     $('#tFiles').innerHTML = draft.files.map((f, i) => `<div class="fileitem">📄 ${esc(f.name)} <span class="hint">${fmtSize(f.size)}</span><button data-rmf="${i}">×</button></div>`).join('');
     v.querySelectorAll('[data-rmf]').forEach(b => b.onclick = () => { draft.files.splice(+b.dataset.rmf, 1); drawThumbs(); });
     v.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => {
@@ -273,9 +311,9 @@ function renderWrite() {
   const add = k => e => {
     for (const f of e.target.files) { f.preview = URL.createObjectURL(f); draft[k].push(f); }
     e.target.value = ''; drawThumbs();
-    // 排球课堂加了视频：提醒会压缩加水印，并问有没有视频号链接
-    if (k === 'videos' && $('#cSec').value === 'learn' && !$('#cSph').value.trim()) {
-      toast('视频会压缩成高清并加水印；如果已发在视频号，请填上视频号链接');
+    // 排球课堂、风采相册加了视频：提醒会压缩（课堂还会加水印），并问有没有视频号链接
+    if (k === 'videos' && SPH_SECS.includes($('#cSec').value) && !$('#cSph').value.trim()) {
+      toast($('#cSec').value === 'learn' ? '视频会压缩成高清并加水印；如果已发在视频号，请填上视频号链接' : '视频会压缩成高清；如果已发在视频号，请填上视频号链接');
       $('#cSph').focus();
     }
   };
@@ -292,8 +330,10 @@ function renderWrite() {
   const hints = () => {
     const k = sec.value;
     $('#cLearn').hidden = k !== 'learn';
-    $('#cSphBox').hidden = k !== 'learn';
-    $('#cSphAsk').hidden = !(k === 'learn' && draft.videos.length);
+    $('#cAlbumBox').hidden = k !== 'gallery';
+    $('#cSphBox').hidden = !SPH_SECS.includes(k);
+    $('#cSphAsk').hidden = !(SPH_SECS.includes(k) && draft.videos.length);
+    $('#cSphAskWhat').innerHTML = k === 'learn' ? '排球课堂的视频会<b>压缩成高清并在画面右下角加上 BISTU-Volleyball 水印</b>。' : '风采相册的视频会<b>压缩成高清</b>（3 分钟以上的改为 720p）。';
     $('#hintPhoto').textContent = ORIGINAL_PHOTO.includes(k)
       ? '保留原图（点开照片看原图，网页上显示高清版）；第一张作为封面'
       : '自动缩小到适合网页的大小；第一张作为封面';
@@ -302,6 +342,7 @@ function renderWrite() {
       : HQ_VIDEO.includes(k) ? '高清（1080p），符合条件的原片直接使用；3 分钟以上自动改 720p，最长约 7 分钟' : '自动压缩；建议 1 分钟以内';
   };
   sec.onchange = hints;
+  bindAlbumPicker('c');
   hints();
   drawThumbs();
   $('#cSubmit').onclick = submit;
@@ -312,12 +353,14 @@ async function submit() {
   if (!title) return toast('请填写标题', true);
   if (!text.trim() && !draft.photos.length && !draft.videos.length && !draft.files.length) return toast('正文、照片、视频、附件至少要有一样', true);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return toast('请选择日期', true);
-  const sph = section === 'learn' ? $('#cSph').value.trim().replace(/#.*$/, '') : '';
+  const sph = SPH_SECS.includes(section) ? $('#cSph').value.trim().replace(/#.*$/, '') : '';
   if (sph && !SPH_OK.test(sph)) return toast('视频号链接不对：请在视频号里点「···」→「复制链接」后粘贴（weixin.qq.com/sph/…）', true);
-  if (section === 'learn' && sph && !draft.videos.length && !draft.photos.length) {
+  const album = section === 'gallery' ? readAlbumPicker('c') : {};
+  if (!album) return;
+  if (SPH_SECS.includes(section) && sph && !draft.videos.length && !draft.photos.length) {
     // 只有视频号链接：走转载，自动取封面（标题用填写的）
     if (!confirm('只填了视频号链接、没有上传视频：将自动获取视频号的封面，在网站上生成跳转视频号的卡片。继续吗？')) return;
-    return submitChannelsOnly(sph, title);
+    return submitChannelsOnly(sph, title, section, album);
   }
   if (section === 'learn' && draft.videos.length && !sph &&
       !confirm('没有填写视频号链接。\n\n如果这个视频已经发在协会视频号，建议附上链接：网页会注明“高清原版在视频号”并提供跳转。\n\n点「确定」直接提交，点「取消」返回填写。')) return $('#cSph').focus();
@@ -380,11 +423,12 @@ async function submit() {
     }
     const learn = section === 'learn' ? { topic: $('.cTopic').value, level: $('.cLevel').value } : {};
     if (sph) learn.channels = normSph(sph);
-    const post = { title, date, section, text, author: me.name, cover: images[0] || videos[0]?.poster, images, originals: keepOrig ? originals : undefined, ratios, videos, attachments, ...learn, submitted: new Date().toISOString() };
+    const post = { title, date, section, ...album, text, author: me.name, cover: images[0] || videos[0]?.poster, images, originals: keepOrig ? originals : undefined, ratios, videos, attachments, ...learn, submitted: new Date().toISOString() };
     files.push({ path: `_pending/${slug}.md`, text: buildPost(post) });
     await commitFiles(cfg(), files, `投稿：${title}（${me.name}）`, step);
     [...draft.photos, ...draft.videos].forEach(f => URL.revokeObjectURL(f.preview));
     draft.photos = []; draft.videos = []; draft.files = [];
+    if (album.album_name) albumCache = null;
     toast('已提交，等待管理员审核');
     tab = 'pending';
     busy = false; render();
@@ -457,7 +501,8 @@ async function renderPending() {
   clearTimeout(queueTimer);
   v.innerHTML = '<p class="hint">读取中…</p>';
   let posts, queue;
-  try { [posts, queue] = await Promise.all([loadPosts('_pending'), loadQueue()]); } catch (e) { v.innerHTML = `<p class="err">读取失败：${esc(explain(e))}</p>`; return; }
+  let albums = [];
+  try { [posts, queue, albums] = await Promise.all([loadPosts('_pending'), loadQueue(), isAdmin ? loadAlbums() : []]); } catch (e) { v.innerHTML = `<p class="err">读取失败：${esc(explain(e))}</p>`; return; }
   v.innerHTML = '<div id="queue"></div><div id="plist"></div>';
   drawQueue($('#queue'), queue);
   // 有正在抓取的请求时，每 15 秒查一次；完成后提示刷新（不自动刷新，免得冲掉正在修改的内容）
@@ -489,12 +534,14 @@ async function renderPending() {
           <label>栏目<select class="eSec">${SECTIONS.map(s => `<option value="${s.key}"${s.key === p.section ? ' selected' : ''}>${s.name}</option>`).join('')}</select></label>
           <label>日期<input class="eDate" type="date" value="${esc(p.date)}"></label>
         </div>
-        <div class="row eLearn"${p.section === 'learn' ? '' : ' hidden'}>${learnSelects('e', p)}<label>视频号链接（选填）<input class="eSph" value="${esc(p.channels || '')}" placeholder="https://weixin.qq.com/sph/..."></label></div>
+        <div class="row eLearn"${p.section === 'learn' ? '' : ' hidden'}>${learnSelects('e', p)}</div>
+        <div class="row eGallery"${p.section === 'gallery' ? '' : ' hidden'}><label>小相册<select class="eAlbum"><option value="">请选择小相册</option>${albums.map(a => `<option value="${esc(a.id)}"${a.id === p.album ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}${p.album_name && !albums.some(a => a.id === p.album) ? `<option value="${esc(p.album)}" selected>新建：${esc(p.album_name)}</option>` : ''}</select></label></div>
+        <div class="row eSphRow"${SPH_SECS.includes(p.section) ? '' : ' hidden'}><label>视频号链接（选填）<input class="eSph" value="${esc(p.channels || '')}" placeholder="https://weixin.qq.com/sph/..."></label></div>
         ${p.cover ? `<div class="cover-pick"><span>首页封面（卡片按这个范围截取）</span>
           <div class="cover-box"><img class="eCoverImg" src="${url(p.cover)}" style="object-position: 50% ${esc(p.cover_pos || '50%')}"></div>
           <select class="eCoverPos">${COVER_POS.map(([v, n]) => `<option value="${v}"${v === (p.cover_pos || '50%') ? ' selected' : ''}>${n}</option>`).join('')}</select></div>` : ''}
         <label>正文<textarea class="eText" rows="6">${esc(p.text)}</textarea></label>`
-      : `<h3>${esc(p.title)}</h3><div class="meta">${esc(secName(p.section))} · ${esc(p.date)}</div><div class="pv-text">${p.text.split('\n').map(s => `<p>${esc(s)}</p>`).join('')}</div>`}
+      : `<h3>${esc(p.title)}</h3><div class="meta">${esc(secName(p.section))}${p.album_name ? ` · 新建相册：${esc(p.album_name)}` : ''} · ${esc(p.date)}</div><div class="pv-text">${p.text.split('\n').map(s => `<p>${esc(s)}</p>`).join('')}</div>`}
       ${isAdmin ? '<div class="pv-media eMedia"></div>' + attachList(p.attachments) : preview(p)}
       ${isAdmin ? '<div class="actions"><button class="primary" data-act="ok">通过并发布</button><button class="danger" data-act="no">退回（删除）</button></div>' : ''}
     </div>`).join('');
@@ -527,22 +574,41 @@ async function renderPending() {
     };
     drawMedia();
     const secSel = card.querySelector('.eSec');
-    secSel.addEventListener('change', () => { card.querySelector('.eLearn').hidden = secSel.value !== 'learn'; });
+    secSel.addEventListener('change', () => {
+      card.querySelector('.eLearn').hidden = secSel.value !== 'learn';
+      card.querySelector('.eGallery').hidden = secSel.value !== 'gallery';
+      card.querySelector('.eSphRow').hidden = !SPH_SECS.includes(secSel.value);
+    });
     const sel = card.querySelector('.eCoverPos');
     if (sel) sel.onchange = () => { card.querySelector('.eCoverImg').style.objectPosition = `50% ${sel.value}`; };
     card.querySelector('[data-act="ok"]').onclick = () => act(card, async () => {
       const pos = card.querySelector('.eCoverPos')?.value;
       const q = { ...p, title: card.querySelector('.eTitle').value.trim(), section: card.querySelector('.eSec').value, date: card.querySelector('.eDate').value, text: card.querySelector('.eText').value, cover_pos: pos && pos !== '50%' ? pos : undefined, approved_by: me.name,
         images: st.images, originals: st.originals || undefined, ratios: st.ratios || undefined, cover: st.cover || undefined };
-      if (q.section === 'learn') {
-        q.topic = card.querySelector('.eTopic').value; q.level = card.querySelector('.eLevel').value;
+      if (q.section === 'learn') { q.topic = card.querySelector('.eTopic').value; q.level = card.querySelector('.eLevel').value; }
+      else { delete q.topic; delete q.level; }
+      if (SPH_SECS.includes(q.section)) {
         const sl = card.querySelector('.eSph').value.trim();
         if (sl && !SPH_OK.test(sl)) throw new Error('视频号链接不对，请重新复制（weixin.qq.com/sph/…）');
         q.channels = sl ? normSph(sl) : undefined;
       }
-      else { delete q.topic; delete q.level; }
       if (!q.title || !/^\d{4}-\d{2}-\d{2}$/.test(q.date)) throw new Error('标题和日期不能为空');
-      await commitFiles(cfg(), [{ path: `_posts/${p.slug}.md`, text: buildPost(q) }, { path: p.path, del: true }, ...st.removed.map(f => ({ path: f.replace(/^\//, ''), del: true }))], `发布：${q.title}（审核：${me.name}）`);
+      // 风采相册：投稿时新建的小相册，在这里正式加进 albums.json 并建好相册页面（同名的并入已有相册）
+      const extra = [];
+      if (q.section === 'gallery') {
+        q.album = card.querySelector('.eAlbum').value;
+        if (!q.album) throw new Error('请选择小相册');
+        const fresh = await loadAlbums();
+        if (!fresh.some(a => a.id === q.album)) {
+          if (q.album !== p.album || !p.album_name) throw new Error('这个小相册已不存在，请重新选择');
+          const same = fresh.find(a => a.name === p.album_name);
+          if (same) q.album = same.id;
+          else { const a = { id: q.album, name: p.album_name }; extra.push(albumsFile([a, ...fresh]), albumPage(a)); }
+        }
+      } else delete q.album;
+      delete q.album_name;
+      await commitFiles(cfg(), [{ path: `_posts/${p.slug}.md`, text: buildPost(q) }, { path: p.path, del: true }, ...st.removed.map(f => ({ path: f.replace(/^\//, ''), del: true })), ...extra], `发布：${q.title}（审核：${me.name}）`);
+      albumCache = null;
       return '已发布，约 1 分钟后出现在网站上';
     });
     card.querySelector('[data-act="no"]').onclick = () => {
@@ -569,19 +635,21 @@ async function act(card, fn) {
 async function renderPublished() {
   const v = $('#view');
   v.innerHTML = '<p class="hint">读取中…</p>';
-  let posts;
-  try { posts = await loadPosts('_posts'); } catch (e) { v.innerHTML = `<p class="err">读取失败：${esc(explain(e))}</p>`; return; }
+  let posts, albums;
+  try { [posts, albums] = await Promise.all([loadPosts('_posts'), loadAlbums()]); } catch (e) { v.innerHTML = `<p class="err">读取失败：${esc(explain(e))}</p>`; return; }
+  const albumName = id => (albums.find(a => a.id === id) || {}).name;
   const trash = `<div class="panel"><h3>🗑️ 最近删除 <span class="hint">误删、误退回的文章可以在这里一键恢复</span></h3><div id="trash"><button id="trashLoad">查看最近删除的内容</button></div></div>`;
   if (!posts.length) { v.innerHTML = '<p class="empty">还没有已发布的内容。</p>' + trash; $('#trashLoad').onclick = () => renderTrash($('#trash')); return; }
-  v.innerHTML = `<p class="hint">要修改已发布的文章：先「撤回到待审核」，在「审核」里改好再发布。</p>` + posts.map((p, i) => `
+  v.innerHTML = `<div class="panel" id="albPanel"></div><p class="hint">要修改已发布的文章（包括换小相册）：先「撤回到待审核」，在「审核」里改好再发布。</p>` + posts.map((p, i) => `
     <div class="panel item row-item" data-i="${i}">
       <div class="ri-main">
         <a href="${postUrl(p)}" target="_blank"><b>${esc(p.title)}</b></a>
-        <div class="meta">${esc(secName(p.section))} · ${esc(p.date)} · ${esc(p.author || '')}${p.approved_by ? ` · 审核 ${esc(p.approved_by)}` : ''}</div>
+        <div class="meta">${esc(secName(p.section))}${p.album && albumName(p.album) ? ` › ${esc(albumName(p.album))}` : ''} · ${esc(p.date)} · ${esc(p.author || '')}${p.approved_by ? ` · 审核 ${esc(p.approved_by)}` : ''}</div>
       </div>
       <div class="actions"><button data-act="back">撤回到待审核</button><button class="danger" data-act="del">删除</button></div>
     </div>`).join('') + trash;
   $('#trashLoad').onclick = () => renderTrash($('#trash'));
+  drawAlbums($('#albPanel'), albums, posts);
   v.querySelectorAll('.item').forEach(card => {
     const p = posts[+card.dataset.i];
     card.querySelector('[data-act="back"]').onclick = () => act(card, async () => {
@@ -598,6 +666,44 @@ async function renderPublished() {
       });
     };
   });
+}
+
+// 小相册管理：改名、调顺序、新建、删除空相册，一次保存（albums.json + 各相册页面）
+function drawAlbums(box, albums, posts) {
+  const list = albums.map(a => ({ ...a, was: a.name }));
+  const count = id => posts.filter(p => p.album === id).length;
+  const draw = () => {
+    box.innerHTML = `<h3>📁 风采相册的小相册 <span class="hint">投稿到风采相册时从这里选；排在前面的在网站上显示在前面</span></h3>
+      ${list.map((a, k) => `<div class="row alb-row" data-k="${k}">
+        <label>名称<input class="aName" maxlength="30" value="${esc(a.name)}"></label>
+        <span class="hint alb-n">${a.id ? `${count(a.id)} 篇` : '新建'}</span>
+        ${k ? '<button data-a="up" title="前移">↑ 前移</button>' : ''}
+        <button class="danger" data-a="del"${a.id && count(a.id) ? ' disabled title="相册里还有内容，不能删除"' : ''}>删除</button>
+      </div>`).join('') || '<p class="hint">还没有小相册。</p>'}
+      <div class="actions"><button data-a="add">＋ 新建小相册</button><button class="primary" data-a="save">保存小相册</button></div>`;
+    box.querySelectorAll('.aName').forEach((el, k) => el.oninput = () => { list[k].name = el.value; });
+    box.querySelectorAll('.alb-row').forEach(row => {
+      const k = +row.dataset.k;
+      const b = n => row.querySelector(`[data-a="${n}"]`);
+      if (b('up')) b('up').onclick = () => { [list[k - 1], list[k]] = [list[k], list[k - 1]]; draw(); };
+      b('del').onclick = () => { if (confirm(`删除小相册「${list[k].name}」？`)) { list.splice(k, 1); draw(); } };
+    });
+    box.querySelector('[data-a="add"]').onclick = () => { list.unshift({ id: '', name: '' }); draw(); box.querySelector('.aName').focus(); };
+    box.querySelector('[data-a="save"]').onclick = () => act(box, async () => {
+      const names = list.map(a => a.name.trim());
+      if (names.some(n => !n)) throw new Error('相册名称不能为空');
+      if (new Set(names).size < names.length) throw new Error('有两个相册同名');
+      const fresh = await loadAlbums();
+      if (JSON.stringify(fresh) !== JSON.stringify(albums)) throw new Error('小相册刚被别人改过（可能有投稿新建了相册），请刷新后再改');
+      const out = list.map((a, k) => ({ id: a.id || newAlbumId() + k, name: names[k], was: a.was }));
+      const files = [albumsFile(out), ...out.filter(a => a.name !== a.was).map(albumPage),
+        ...albums.filter(a => !out.some(o => o.id === a.id)).map(a => ({ path: `gallery/${a.id}/index.html`, del: true }))];
+      await commitFiles(cfg(), files, `更新小相册（${me.name}）`);
+      albumCache = null;
+      return '已保存，约 1 分钟后生效';
+    });
+  };
+  draw();
 }
 
 // ---------- 首页设置（管理员）----------

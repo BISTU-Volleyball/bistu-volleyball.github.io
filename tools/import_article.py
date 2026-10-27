@@ -163,6 +163,13 @@ def credit_line(seq_texts):
     return '　'.join(keep)
 
 
+def album_fields(section, extra):
+    """风采相册的小相册：投稿时选的相册编号 album，新建的相册名 album_name（审核通过时才正式建相册）"""
+    if section != 'gallery' or not extra:
+        return {}
+    return {'album': extra.get('album'), 'album_name': extra.get('album_name')}
+
+
 SPH_RE = re.compile(r'weixin\.qq\.com/sph/([A-Za-z0-9_-]+)|channels\.weixin\.qq\.com/.*[?&]id=([A-Za-z0-9_-]+)')
 
 
@@ -211,6 +218,7 @@ def build_channels(url, section='news', requester='', extra=None):
             'author': author, 'summary': cut_summary(' '.join(text_lines)) or title, 'cover': images[0] if images else '',
             'images': images, 'ratios': ratios, 'channels': link,
             'topic': extra.get('topic') if section == 'learn' else None, 'level': extra.get('level') if section == 'learn' else None,
+            **album_fields(section, extra),
             'submitted': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), 'submitted_by': requester, 'source_url': link}
     data = {k: v for k, v in data.items() if v not in ('', [], None)}
     fm = '\n'.join(f'{k}: {json.dumps(v, ensure_ascii=False)}' for k, v in data.items())
@@ -310,6 +318,7 @@ def build(url, section='news', requester='', extra=None):
     summary = cut_summary(' '.join(b for b in blocks if not b.startswith(('###', '【'))))
     data = {'layout': 'post', 'title': meta['title'], 'date': f'{date} 12:00:00 +0800', 'section': section if section in SECTIONS else 'news',
             'author': meta['source'].replace('微信公众号', ''), 'summary': summary, 'cover': cover, 'images': images, 'ratios': ratios,
+            **album_fields(section, extra),
             'submitted': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), 'submitted_by': requester, 'source_url': url}
     data = {k: v for k, v in data.items() if v not in ('', [], None)}
     fm = '\n'.join(f'{k}: {json.dumps(v, ensure_ascii=False)}' for k, v in data.items())
