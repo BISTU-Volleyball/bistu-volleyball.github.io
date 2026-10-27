@@ -130,3 +130,4 @@ code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
 .pub input.vsph { padding: 5px 8px; font-size: 12px; }
 .pvv { display: flex; flex-direction: column; gap: 4px; }
 .pub input.evSph { padding: 5px 8px; font-size: 13px; }
+.sph-only { margin-top: 8px; }

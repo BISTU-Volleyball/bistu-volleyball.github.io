@@ -255,10 +255,6 @@ function renderWrite() {
         <label>日期<input id="cDate" type="date" value="${today()}"></label>
       </div>
       <div class="row" id="cLearn" hidden>${learnSelects('c')}</div>${albumPicker('c')}
-      <div id="cSphBox" hidden>
-        <label>只发视频号里的视频（不上传视频文件）？贴视频号链接（选填）<input id="cSph" placeholder="https://weixin.qq.com/sph/..."></label>
-        <p class="hint">在视频号里点「···」→「复制链接」。网站会生成一张卡片，点击跳到视频号观看。上传了视频文件的，请在每个视频下面分别填它的视频号链接。</p>
-      </div>
       <label>正文<textarea id="cText" rows="9" placeholder="直接输入文字，每按一次回车就是新的一段"></textarea></label>
       <p class="hint">想让照片或视频出现在正文某个位置：把光标放到那里，点缩略图下方的「插入正文」（会写入【图1】这样的标记）。同一行写两个标记会并排显示；没插入的照片视频会排在文末。</p>
       <div class="media">
@@ -268,6 +264,10 @@ function renderWrite() {
       <div class="media">
         <div class="media-head"><b>视频</b><span class="hint" id="hintVideo"></span><label class="btn">＋ 添加视频<input id="cVideos" type="file" accept="video/*" multiple hidden></label></div>
         <div class="thumbs" id="tVideos"></div>
+        <div id="cSphBox" class="sph-only" hidden>
+          <label>没有视频文件、视频只发在视频号？贴它的视频号链接（选填）<input id="cSph" placeholder="https://weixin.qq.com/sph/..."></label>
+          <p class="hint">在视频号里点「···」→「复制链接」。网站会生成一张卡片，点击跳到视频号观看。<br>上传了视频文件的，链接框会出现在每个视频缩略图下面，各填各的。</p>
+        </div>
         <div class="sph-ask" id="cSphAsk" hidden>📌 <span id="cSphAskWhat"></span><br>
           哪个视频<b>已经发在协会视频号</b>，就在它下面填上<b>它自己的</b>视频号链接，网页会在该视频下注明“高清原版在视频号”并附跳转。</div>
       </div>
