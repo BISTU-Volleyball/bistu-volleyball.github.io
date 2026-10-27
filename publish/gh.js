@@ -21,7 +21,8 @@ export const ghClient = cfg => async (path, opts = {}) => {
   } catch (e) { throw new Error('连不上 GitHub，请检查网络'); }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const e = new Error(res.status === 401 && Date.now() - t0 > 40000 ? SLOW_MSG : `GitHub：${data.message || res.status}`);
+    const tooBig = res.status === 422 && /too large/i.test(data.message || '');
+    const e = new Error(res.status === 401 && Date.now() - t0 > 40000 ? SLOW_MSG : tooBig ? '文件太大，GitHub 拒收（单个文件上限约 40MB）' : `GitHub：${data.message || res.status}`);
     e.status = res.status; throw e;
   }
   return data;

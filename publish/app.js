@@ -19,7 +19,7 @@ const LS = 'bv_pub';
 // 各栏目的画质：排球课堂、风采相册用高清视频；风采相册的照片保留原图（其余栏目照片缩到长边 1600）
 const HQ_VIDEO = ['learn', 'gallery'], ORIGINAL_PHOTO = ['gallery'];
 const SPH_SECS = ['learn', 'gallery']; // 可以附视频号链接的栏目
-const MAX_MB = { standard: 50, high: 70 };
+const MAX_MB = { standard: 38, high: 38 }; // GitHub 上传接口单个文件约 40MB 封顶（见 media.js）
 const COVER_POS = [['15%', '偏上'], ['50%', '居中'], ['85%', '偏下']]; // 首页卡片封面的截取位置
 const MARK = { photos: '图', videos: '视频' }; // 正文里插图标记：【图1】【视频1】
 
@@ -336,13 +336,13 @@ function renderWrite() {
     $('#cLearn').hidden = k !== 'learn';
     $('#cAlbumBox').hidden = k !== 'gallery';
     $('#cSphAsk').hidden = !(SPH_SECS.includes(k) && draft.videos.length);
-    $('#cSphAskWhat').innerHTML = k === 'learn' ? '排球课堂的视频会<b>压缩成高清并在画面右下角加上 BISTU-Volleyball 水印</b>。' : '风采相册的视频会<b>压缩成高清</b>（3 分钟以上的改为 720p）。';
+    $('#cSphAskWhat').innerHTML = k === 'learn' ? '排球课堂的视频会<b>压缩成高清并在画面右下角加上 BISTU-Volleyball 水印</b>。' : '风采相册的视频会<b>压缩成高清</b>（1 分半以上的改为 720p）。';
     $('#hintPhoto').textContent = ORIGINAL_PHOTO.includes(k)
       ? '保留原图（点开照片看原图，网页上显示高清版）；第一张作为封面'
       : '自动缩小到适合网页的大小；第一张作为封面';
     $('#hintVideo').textContent = k === 'learn'
-      ? '高清（1080p）并自动加 BISTU-Volleyball 水印；一个动作一段；3 分钟以上自动改 720p，最长约 7 分钟'
-      : HQ_VIDEO.includes(k) ? '高清（1080p），符合条件的原片直接使用；3 分钟以上自动改 720p，最长约 7 分钟' : '自动压缩；建议 1 分钟以内';
+      ? '高清（1080p）并自动加 BISTU-Volleyball 水印；一个动作一段；1 分半以上自动改 720p，最长约 3 分 50 秒'
+      : HQ_VIDEO.includes(k) ? '高清（1080p），符合条件的原片直接使用；1 分半以上自动改 720p，最长约 3 分 50 秒' : '自动压缩；建议 1 分钟以内';
   };
   sec.onchange = () => { hints(); drawThumbs(); };
   bindAlbumPicker('c');
@@ -416,7 +416,7 @@ async function submit() {
         else if (/\.mp4$/i.test(f.name) && f.size <= 20 * 1048576) blob = f;
         else throw new Error('这个浏览器不能压缩视频，请换用电脑上最新版的 Chrome 或 Edge');
         const lim = MAX_MB[quality];
-        if (blob.size > lim * 1048576) throw new Error(`「${f.name}」处理后仍超过 ${lim}MB，请剪短一些（${quality === 'high' ? '高清视频最长约 7 分钟' : '建议 1 分钟以内'}）`);
+        if (blob.size > lim * 1048576) throw new Error(`「${f.name}」处理后仍超过 ${lim}MB，请剪短一些（${quality === 'high' ? '高清视频最长约 3 分 50 秒，更长的请发视频号后在视频区贴链接' : '建议 1 分钟以内'}）`);
         const path = `${dir}/v${i + 1}.mp4`;
         files.push({ path, blob });
         const v = { src: '/' + path };
