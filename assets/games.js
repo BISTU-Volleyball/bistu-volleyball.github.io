@@ -65,7 +65,7 @@
   }
 
   const bjToday = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
-  const dayLabel = d => { const t = new Date(d + 'T00:00:00+08:00'); return `${+d.slice(5, 7)}月${+d.slice(8, 10)}日（周${WEEK[t.getUTCDay()]}）`; };
+  const dayLabel = d => { const t = new Date(d + 'T00:00:00Z'); return `${+d.slice(5, 7)}月${+d.slice(8, 10)}日（周${WEEK[t.getUTCDay()]}）`; };
   const stageName = m => m.stage === 'group' ? `${m.a[0]}组` : (m.label || STAGE[m.stage] || '');
   const fmt = x => x == null ? '—' : x === Infinity ? '∞' : x.toFixed(2);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
