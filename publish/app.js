@@ -785,7 +785,7 @@ async function renderScores() {
   if (!G.matches) { v.innerHTML = '<p class="empty">还没有赛程数据（_data/games2026.json）。</p>'; return; }
   const C = globalThis.GamesCore, SP = G.set_points || [21, 21, 15];
   const days = [...new Set(G.matches.map(m => m.date))].sort(), today = C.bjToday();
-  v.innerHTML = `<p class="hint">每场结束后填每局小分（如 21:18），点最下面的「保存比分」，约 1 分钟后网站更新，不用审核。只知道局分的，在右边选局分即可（这样 Z 值暂时算不出）。胜负、C 值、Z 值、小组排名、淘汰赛对阵都会自动算。
+  v.innerHTML = `<p class="hint">每场结束后填每局小分（如 21:18），点最下面的「保存比分」，约 1 分钟后网站更新，不用审核。只知道局分的，在右边选局分即可（这样 Z 值暂时算不出）。弃权按规则填两局 21:0。胜负、C 值、Z 值、小组排名、淘汰赛对阵都会自动算。
       <a href="${url('games/2026/')}" target="_blank">查看赛程比分页 ›</a></p>
     ${days.map(d => `<div class="panel sc-day${d === today ? ' sc-today' : ''}"><h3>${C.dayLabel(d)}${d === today ? ' <span class="sc-tag">今天</span>' : ''}</h3>
       ${G.matches.filter(m => m.date === d).map(m => `
@@ -810,7 +810,8 @@ async function renderScores() {
       if (!p) { problems.push(`${C.stageName(m)} ${m.time} 第${k + 1}局「${t}」看不懂，请写成 21:18`); return; }
       const [a, b] = p, hi = Math.max(a, b), lo = Math.min(a, b), T = SP[k] || 15;
       if (a === b) problems.push(`${C.stageName(m)} ${m.time} 第${k + 1}局 ${a}:${b} 是平局`);
-      else if (hi < T || hi - lo < 2 || (hi > T && hi - lo !== 2)) problems.push(`${C.stageName(m)} ${m.time} 第${k + 1}局 ${a}:${b} 不像 ${T} 分制的比分（要先到 ${T} 分且领先 2 分）`);
+      // 竞赛规则：前两局先得 21 分获胜（不加分，最高 21）；决胜局先得 15 分且领先 2 分
+      else if (k < 2 ? hi !== T : (hi < T || hi - lo < 2 || (hi > T && hi - lo !== 2))) problems.push(`${C.stageName(m)} ${m.time} 第${k + 1}局 ${a}:${b} 不符合规则（${k < 2 ? `前两局先得 ${T} 分获胜，胜方应正好 ${T} 分` : `决胜局先得 ${T} 分且领先 2 分`}）`);
       sets.push(p);
     });
     if (sets.length) {

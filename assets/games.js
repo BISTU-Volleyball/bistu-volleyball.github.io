@@ -18,10 +18,10 @@
 
   const ratio = (x, y) => y ? x / y : (x ? Infinity : 0);
 
-  // 小组积分榜：胜场 → C 值 → Z 值 → 两队之间胜负
+  // 小组积分榜（按竞赛规则）：胜场 → 比赛积分（2:0 胜 3 负 0，2:1 胜 2 负 1）→ C 值 → Z 值
   function standings(G, grp) {
     const ids = G.groups[grp], ms = G.matches.filter(m => m.stage === 'group' && ids.includes(m.a));
-    const rows = ids.map(id => ({ id, name: G.teams[id], p: 0, w: 0, l: 0, sw: 0, sl: 0, pf: 0, pa: 0, ptsOk: true }));
+    const rows = ids.map(id => ({ id, name: G.teams[id], p: 0, w: 0, l: 0, pts: 0, sw: 0, sl: 0, pf: 0, pa: 0, ptsOk: true }));
     const R = Object.fromEntries(rows.map(r => [r.id, r]));
     for (const m of ms) {
       const r = result(m);
@@ -30,17 +30,12 @@
         const t = R[me];
         t.p++; t.sw += mine; t.sl += theirs;
         if (mine > theirs) t.w++; else t.l++;
+        t.pts += mine === 2 ? (theirs === 0 ? 3 : 2) : (mine === 1 ? 1 : 0);
         if (pm == null) t.ptsOk = false; else { t.pf += pm; t.pa += po; }
       }
     }
     for (const t of rows) { t.c = ratio(t.sw, t.sl); t.z = t.ptsOk && t.p ? ratio(t.pf, t.pa) : null; }
-    const h2h = (x, y) => {
-      const m = ms.find(m => (m.a === x.id && m.b === y.id) || (m.a === y.id && m.b === x.id)), r = m && result(m);
-      if (!r || !r.done) return 0;
-      const xWon = (m.a === x.id) === (r.sa > r.sb);
-      return xWon ? -1 : 1;
-    };
-    rows.sort((x, y) => (y.w - x.w) || (y.c - x.c) || ((y.z ?? 0) - (x.z ?? 0)) || h2h(x, y) || x.id.localeCompare(y.id));
+    rows.sort((x, y) => (y.w - x.w) || (y.pts - x.pts) || (y.c - x.c) || ((y.z ?? 0) - (x.z ?? 0)) || x.id.localeCompare(y.id));
     const complete = ms.length > 0 && ms.every(m => result(m).done);
     return { rows, complete };
   }
@@ -96,10 +91,10 @@
     return Object.keys(G.groups).map(grp => {
       const { rows, complete } = standings(G, grp);
       return `<div class="gtable"><h3>${grp} 组${complete ? '<span class="gday-tag done">已结束</span>' : ''}</h3>
-        <table><thead><tr><th>名次</th><th class="l">队伍</th><th>场</th><th>胜</th><th>负</th><th>胜局/负局</th><th>C 值</th><th>得分/失分</th><th>Z 值</th></tr></thead><tbody>
-        ${rows.map((t, i) => `<tr${complete && i < 2 ? ' class="adv"' : ''}><td>${i + 1}</td><td class="l"><i>${t.id}</i>${esc(t.name)}</td><td>${t.p}</td><td>${t.w}</td><td>${t.l}</td><td>${t.sw}/${t.sl}</td><td>${t.p ? fmt(t.c) : '—'}</td><td>${t.ptsOk && t.p ? `${t.pf}/${t.pa}` : '—'}</td><td>${fmt(t.z)}</td></tr>`).join('')}
+        <table><thead><tr><th>名次</th><th class="l">队伍</th><th>场</th><th>胜</th><th>负</th><th>积分</th><th>胜局/负局</th><th>C 值</th><th>得分/失分</th><th>Z 值</th></tr></thead><tbody>
+        ${rows.map((t, i) => `<tr${complete && i < 2 ? ' class="adv"' : ''}><td>${i + 1}</td><td class="l"><i>${t.id}</i>${esc(t.name)}</td><td>${t.p}</td><td>${t.w}</td><td>${t.l}</td><td><b>${t.pts}</b></td><td>${t.sw}/${t.sl}</td><td>${t.p ? fmt(t.c) : '—'}</td><td>${t.ptsOk && t.p ? `${t.pf}/${t.pa}` : '—'}</td><td>${fmt(t.z)}</td></tr>`).join('')}
         </tbody></table></div>`;
-    }).join('') + '<p class="gnote">小组前两名（绿色）进入交叉赛。“—”表示有场次只记录了局分、没有每局小分，暂时算不出。</p>';
+    }).join('') + '<p class="gnote">名次依次比较：胜场数、比赛积分（2:0 胜队 3 分负队 0 分，2:1 胜队 2 分负队 1 分）、C 值、Z 值；小组前两名（绿色）进入交叉赛。“—”表示有场次只记录了局分、没有每局小分，暂时算不出。</p>';
   }
 
   function bracketHTML(G) {
