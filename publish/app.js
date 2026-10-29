@@ -109,7 +109,7 @@ const postUrl = p => url(`posts/${p.date.slice(0, 4)}/${p.date.slice(5, 7)}${p.d
 // ---------- 页面框架 ----------
 function render() {
   if (!me) return renderSetup();
-  const tabs = [['compose', '✍️ 投稿'], ['pending', isAdmin ? '🗂️ 审核' : '⏳ 待审核'], ...(isAdmin ? [['published', '📰 已发布'], ['home', '🏠 首页'], ['about', '🏛️ 关于协会']] : []), ['settings', '⚙️ 设置']];
+  const tabs = [['compose', '✍️ 投稿'], ['pending', isAdmin ? '🗂️ 审核' : '⏳ 待审核'], ...(isAdmin ? [['published', '📰 已发布'], ['scores', '🏆 比分'], ['home', '🏠 首页'], ['about', '🏛️ 关于协会']] : []), ['settings', '⚙️ 设置']];
   root.innerHTML = `
     <div class="pub-head"><h1>发布助手</h1><span class="who">${esc(me.name || '未署名')}${isAdmin ? ' · <b>管理员</b>' : ''}</span></div>
     <div class="tabs">${tabs.map(([k, n]) => `<button data-tab="${k}" class="${tab === k ? 'on' : ''}">${n}</button>`).join('')}</div>
@@ -118,7 +118,7 @@ function render() {
     if (busy) return toast('正在提交，请稍候', true);
     tab = b.dataset.tab; render();
   });
-  ({ compose: renderCompose, pending: renderPending, published: renderPublished, home: renderHome, about: renderAbout, settings: renderSettings })[tab]();
+  ({ compose: renderCompose, pending: renderPending, published: renderPublished, scores: renderScores, home: renderHome, about: renderAbout, settings: renderSettings })[tab]();
 }
 
 function renderSetup(err, name = me?.name || '') {
@@ -771,6 +771,81 @@ function drawAlbums(box, albums, posts) {
   draw();
 }
 
+// ---------- 比分（管理员）----------
+// _data/games2026.json 的 matches：每场填每局小分 sets [[21,18],…]，或只填局分 sa:sb；胜负、C/Z 值、排名、淘汰赛对阵由 assets/games.js 自动算
+const GAMES_FILE = 'games2026';
+const parseSet = t => { const m = String(t).trim().match(/^(\d{1,2})\s*[:：\-－\s]\s*(\d{1,2})$/); return m ? [+m[1], +m[2]] : null; };
+async function renderScores() {
+  const v = $('#view');
+  v.innerHTML = '<p class="hint">读取中…</p>';
+  let G;
+  try {
+    [G] = await Promise.all([readData(GAMES_FILE), import(url('assets/games.js') + VER)]);
+  } catch (e) { v.innerHTML = `<p class="err">读取失败：${esc(explain(e))}</p>`; return; }
+  if (!G.matches) { v.innerHTML = '<p class="empty">还没有赛程数据（_data/games2026.json）。</p>'; return; }
+  const C = globalThis.GamesCore, SP = G.set_points || [21, 21, 15];
+  const days = [...new Set(G.matches.map(m => m.date))].sort(), today = C.bjToday();
+  v.innerHTML = `<p class="hint">每场结束后填每局小分（如 21:18），点最下面的「保存比分」，约 1 分钟后网站更新，不用审核。只知道局分的，在右边选局分即可（这样 Z 值暂时算不出）。胜负、C 值、Z 值、小组排名、淘汰赛对阵都会自动算。
+      <a href="${url('games/2026/')}" target="_blank">查看赛程比分页 ›</a></p>
+    ${days.map(d => `<div class="panel sc-day${d === today ? ' sc-today' : ''}"><h3>${C.dayLabel(d)}${d === today ? ' <span class="sc-tag">今天</span>' : ''}</h3>
+      ${G.matches.filter(m => m.date === d).map(m => `
+      <div class="sc-row" data-id="${esc(m.id)}">
+        <div class="sc-head"><span class="sc-stage">${esc(C.stageName(m))}</span><span class="hint">${esc(m.time)}${m.court ? ' · ' + esc(m.court) : ''}</span><b class="sc-names"></b></div>
+        <div class="sc-in">${[0, 1, 2].map(k => `<label>第${k + 1}局<input class="sc-set" data-k="${k}" value="${m.sets && m.sets[k] ? m.sets[k].join(':') : ''}" placeholder="${k < 2 ? '如 21:18' : '如 15:12'}"></label>`).join('')}
+          <label>或只填局分<select class="sc-q"><option value="">—</option>${['2:0', '2:1', '1:2', '0:2'].map(o => `<option${!(m.sets || []).length && m.sa != null && `${m.sa}:${m.sb}` === o ? ' selected' : ''}>${o}</option>`).join('')}</select></label>
+          <span class="sc-res"></span></div>
+        <details class="sc-more"><summary>改时间 / 场地</summary><div class="row">
+          <label>日期<input type="date" class="sc-date" value="${esc(m.date)}"></label><label>时间<input class="sc-time" value="${esc(m.time)}"></label><label>场地<input class="sc-court" value="${esc(m.court || '')}" placeholder="例如：1号场"></label></div></details>
+      </div>`).join('')}</div>`).join('')}
+    <div class="panel savebar"><button class="primary" id="scSave">保存比分</button> <span class="hint">保存后约 1 分钟生效</span></div>`;
+
+  // 从输入框读出一场；problems 收集不合规则的地方
+  const read = (row, m, problems) => {
+    const q = { ...m, date: row.querySelector('.sc-date').value || m.date, time: row.querySelector('.sc-time').value.trim() || m.time, court: row.querySelector('.sc-court').value.trim() };
+    delete q.sets; delete q.sa; delete q.sb;
+    const raw = [...row.querySelectorAll('.sc-set')].map(i => i.value.trim()), sets = [];
+    raw.forEach((t, k) => {
+      if (!t) return;
+      const p = parseSet(t);
+      if (!p) { problems.push(`${C.stageName(m)} ${m.time} 第${k + 1}局「${t}」看不懂，请写成 21:18`); return; }
+      const [a, b] = p, hi = Math.max(a, b), lo = Math.min(a, b), T = SP[k] || 15;
+      if (a === b) problems.push(`${C.stageName(m)} ${m.time} 第${k + 1}局 ${a}:${b} 是平局`);
+      else if (hi < T || hi - lo < 2 || (hi > T && hi - lo !== 2)) problems.push(`${C.stageName(m)} ${m.time} 第${k + 1}局 ${a}:${b} 不像 ${T} 分制的比分（要先到 ${T} 分且领先 2 分）`);
+      sets.push(p);
+    });
+    if (sets.length) {
+      q.sets = sets;
+      const wa = sets.filter(x => x[0] > x[1]).length, wb = sets.length - wa;
+      if (wa < 2 && wb < 2) problems.push(`${C.stageName(m)} ${m.time} 只填了 ${sets.length} 局还没分出胜负（三局两胜）`);
+      if (sets.length === 3 && (sets[0][0] > sets[0][1]) === (sets[1][0] > sets[1][1])) problems.push(`${C.stageName(m)} ${m.time} 前两局已经 2:0，不该有第三局`);
+    } else {
+      const o = row.querySelector('.sc-q').value;
+      if (o) { const [a, b] = o.split(':').map(Number); q.sa = a; q.sb = b; }
+    }
+    return q;
+  };
+  const collect = problems => ({ ...G, matches: G.matches.map(m => read(v.querySelector(`.sc-row[data-id="${m.id}"]`), m, problems)) });
+  // 实时刷新队名（淘汰赛的队伍随小组成绩变化）和结果预览
+  const refresh = () => {
+    const G2 = collect([]);
+    for (const m of G2.matches) {
+      const row = v.querySelector(`.sc-row[data-id="${m.id}"]`), r = C.result(m), A = C.team(G2, m.a), B = C.team(G2, m.b);
+      row.querySelector('.sc-names').textContent = `${A.name}  VS  ${B.name}`;
+      row.querySelector('.sc-res').textContent = r.done ? `→ ${r.sa > r.sb ? A.name : B.name} ${Math.max(r.sa, r.sb)}:${Math.min(r.sa, r.sb)} 胜` : (r.sa != null ? `局分 ${r.sa}:${r.sb}（未完）` : '');
+      row.classList.toggle('sc-done', r.done);
+    }
+  };
+  v.querySelectorAll('input, select').forEach(el => el.addEventListener('input', refresh));
+  refresh();
+  $('#scSave').onclick = () => act(v.querySelector('.savebar'), async () => {
+    const problems = [], G2 = collect(problems);
+    if (problems.length && !confirm('以下比分看起来有问题：\n\n' + problems.join('\n') + '\n\n仍然保存吗？')) throw new Error('已取消，请检查比分');
+    G2.matches.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+    await commitFiles(cfg(), [{ path: `_data/${GAMES_FILE}.json`, text: JSON.stringify(G2, null, 1) + '\n' }], `更新比分（${me.name}）`);
+    return '已保存，约 1 分钟后网站更新';
+  });
+}
+
 // ---------- 首页设置（管理员）----------
 // _data/home.json：slogan 口号；heroes 首屏大图 [{src, pos}]；stats 数字卡片 [{icon, num, label}]；
 // notice 近期活动 {show, title, desc, url, image, button}；wall 照片墙 [{src, post}]（空则自动取最新报道）
@@ -822,6 +897,7 @@ async function renderHome() {
         <label>按钮文字<input id="nBtn" value="${esc(nt.button || '')}" placeholder="例如：去投票、查看详情"></label>
         <label>点击后打开的网址<input id="nUrl" value="${esc(nt.url || '')}" placeholder="https://..."></label>
       </div>
+      <label>赛程比分页（选填；填了会多出「赛程与比分」「积分榜」按钮，并在下面显示今日比赛）<input id="nGames" value="${esc(nt.games || '')}" placeholder="/games/2026/"></label>
       <div class="hs-nimg">
         <div class="hs-nimg-box" id="nImgBox"></div>
         <div><b>活动图片</b><p class="hint">上传一张横幅图片，或在最下面的照片里点「活动图」。</p>
@@ -926,7 +1002,7 @@ async function renderHome() {
       slogan: val(v, '#hSlogan'),
       heroes: st.heroes,
       stats: [...v.querySelectorAll('.hs-stat')].map(r => ({ icon: val(r, '.sIcon'), num: val(r, '.sNum'), label: val(r, '.sLabel') })).filter(s => s.num || s.label),
-      notice: { show: $('#nShow').checked, title: val(v, '#nTitle'), desc: val(v, '#nDesc'), url: val(v, '#nUrl'), image: st.noticeImg, button: val(v, '#nBtn') },
+      notice: { show: $('#nShow').checked, title: val(v, '#nTitle'), desc: val(v, '#nDesc'), url: val(v, '#nUrl'), image: st.noticeImg, button: val(v, '#nBtn'), games: val(v, '#nGames') || undefined },
       wall: st.wall,
     };
     if (data.notice.show && !data.notice.title) throw new Error('近期活动要在首页显示，请填写标题');

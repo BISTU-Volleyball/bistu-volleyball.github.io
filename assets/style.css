@@ -191,3 +191,52 @@ img, video { max-width: 100%; display: block; }
 .sph-v { display: flex; align-items: center; gap: 10px; margin-top: 6px; padding: 7px 12px; border-radius: 10px; background: #eafaf1; border: 1px solid #bfeccf; color: #14532d; font-size: 14px; }
 .sph-v .sph-note-ic { width: 26px; height: 26px; font-size: 12px; }
 .vfig .sph-v { font-size: 13px; }
+/* ---------- 比赛：赛程与比分（assets/games.js 渲染）---------- */
+.games h2 { font-size: 20px; margin: 30px 0 12px; scroll-margin-top: 70px; }
+.games section { scroll-margin-top: 70px; }
+.gnote { color: var(--ink-2); font-size: 14px; line-height: 1.7; }
+.gtabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 6px; position: sticky; top: 58px; z-index: 5; padding: 8px 0; background: linear-gradient(var(--bg) 80%, transparent); }
+.gtabs a { padding: 8px 14px; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow); font-size: 14px; font-weight: 600; }
+.gday { margin-bottom: 18px; }
+.gday h3 { font-size: 16px; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
+.gday.past h3 { color: var(--ink-2); }
+.gday-tag { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #ef7e00; color: #fff; font-weight: 700; }
+.gday-tag.done { background: #2e9d5b; }
+.gday-list, .ghome-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.gm { background: var(--surface); border-radius: 12px; box-shadow: var(--shadow); padding: 10px 14px; border: 1.5px solid transparent; }
+.gm.today { border-color: #ffc98a; }
+.gm-meta { font-size: 12px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.gm-stage { padding: 1px 7px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.gm-cross .gm-stage, .gm-stage.gm-cross { background: #fff1e0; color: #c25e00; }
+.gm-stage.gm-semi { background: #fde8ec; color: #c0264b; }
+.gm-stage.gm-final { background: #fff4c2; color: #8a6200; }
+.gm-body { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin-top: 6px; }
+.gm-team { font-weight: 600; font-size: 15px; }
+.gm-team i { font-style: normal; font-size: 11px; color: var(--ink-2); margin-right: 4px; }
+.gm-b { text-align: right; }
+.gm-team.win { color: #c25e00; }
+.gm-team.win::after { content: " 胜"; font-size: 11px; padding: 0 5px; margin-left: 4px; border-radius: 5px; background: #ef7e00; color: #fff; vertical-align: 2px; }
+.gm-b.win::after { content: none; }
+.gm-b.win::before { content: "胜 "; font-size: 11px; padding: 0 5px; margin-right: 4px; border-radius: 5px; background: #ef7e00; color: #fff; vertical-align: 2px; }
+.gm-team.tbd { color: var(--ink-2); font-weight: 500; font-style: italic; }
+.gm-score { display: flex; align-items: center; gap: 4px; font-size: 22px; font-weight: 800; color: var(--ink); min-width: 64px; justify-content: center; }
+.gm-score em { font-style: normal; color: var(--ink-2); }
+.gm-score span { font-size: 13px; color: var(--ink-2); font-weight: 700; }
+.gm-sets { margin-top: 4px; font-size: 12px; color: var(--ink-2); display: flex; gap: 10px; justify-content: center; }
+.gm-event { display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #fff, #fff6ec); }
+.gtables { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 14px; }
+.gtable { background: var(--surface); border-radius: 12px; box-shadow: var(--shadow); padding: 12px 14px; overflow-x: auto; }
+.gtable h3 { margin: 0 0 8px; font-size: 16px; display: flex; gap: 8px; align-items: center; }
+.gtable table { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
+.gtable th, .gtable td { padding: 6px 5px; text-align: center; border-bottom: 1px solid #eef1f7; }
+.gtable th { color: var(--ink-2); font-weight: 600; font-size: 12px; }
+.gtable .l { text-align: left; }
+.gtable td i { font-style: normal; font-size: 11px; color: var(--ink-2); margin-right: 4px; }
+.gtable tr.adv td { background: #eefaf2; }
+.gbracket { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: center; }
+.gcol { display: flex; flex-direction: column; gap: 10px; }
+.gcol h3 { margin: 0; font-size: 15px; color: var(--ink-2); }
+@media (max-width: 760px) {
+  .gtables, .gbracket { grid-template-columns: 1fr; }
+  .gday-list, .ghome-list { grid-template-columns: 1fr; }
+}

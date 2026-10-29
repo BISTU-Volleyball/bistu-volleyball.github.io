@@ -131,3 +131,19 @@ code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
 .pvv { display: flex; flex-direction: column; gap: 4px; }
 .pub input.evSph { padding: 5px 8px; font-size: 13px; }
 .sph-only { margin-top: 8px; }
+/* 🏆 比分 */
+.sc-day h3 { margin: 0 0 8px; }
+.sc-today { border: 2px solid #ffc98a; }
+.sc-tag { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #ef7e00; color: #fff; }
+.sc-row { padding: 10px 0; border-top: 1px solid #eef1f7; }
+.sc-row:first-of-type { border-top: 0; }
+.sc-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.sc-stage { font-size: 12px; padding: 1px 7px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.sc-names { font-size: 15px; }
+.sc-in { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; margin-top: 6px; }
+.sc-in label { width: 110px; font-size: 13px; }
+.sc-in label:nth-child(4) { width: 120px; }
+.sc-res { font-size: 14px; font-weight: 700; color: #c25e00; padding-bottom: 10px; }
+.sc-done .sc-names { color: var(--ink-2); }
+.sc-more { margin-top: 4px; font-size: 13px; }
+.sc-more summary { cursor: pointer; color: var(--ink-2); }

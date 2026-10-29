@@ -42,7 +42,8 @@
   "desc": "“排绽风采，聚力同行”教职工气排球团体赛即将开赛，有比赛的当天晚上会发布精彩视频评选，欢迎投票。",
   "url": "https://di-90.github.io/volleyball-vote/",
   "image": "/assets/img/banner.jpg",
-  "button": "去投票"
+  "button": "去投票",
+  "games": "/games/2026/"
  },
  "wall": []
 }

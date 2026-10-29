@@ -32,6 +32,24 @@ home: true
 {% assign nt = H.notice %}{% if nt and nt.show %}
 <section class="h-block reveal">
   <div class="h-head"><span>EVENT</span><h2>近期活动</h2></div>
+  {% comment %}notice.games 填了赛程比分页地址（如 /games/2026/）时：多出「赛程」「积分榜」按钮，下面显示今日比赛（assets/games.js）{% endcomment %}
+  {% if nt.games %}{% assign gurl = nt.games | relative_url %}
+  <div class="h-event">
+    {% if nt.image %}<a href="{{ gurl }}"><img src="{{ nt.image | relative_url }}" alt=""></a>{% endif %}
+    <div class="h-event-txt">
+      <h3>{{ nt.title }}</h3>
+      {% if nt.desc %}<p>{{ nt.desc }}</p>{% endif %}
+      <div class="h-event-btns">
+        {% if nt.url %}<a class="h-btn h-btn-orange" href="{{ nt.url }}">{{ nt.button | default: '查看详情' }} →</a>{% endif %}
+        <a class="h-btn h-btn-line" href="{{ gurl }}#schedule">📅 赛程与比分</a>
+        <a class="h-btn h-btn-line" href="{{ gurl }}#standings">📊 积分榜</a>
+      </div>
+    </div>
+  </div>
+  <div class="ghome" id="g-home" data-url="{{ gurl }}"></div>
+  <script>window.GAMES = {{ site.data.games2026 | jsonify }};</script>
+  <script src="{{ '/assets/games.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
+  {% else %}
   <a class="h-event" href="{{ nt.url | default: '#' }}">
     {% if nt.image %}<img src="{{ nt.image | relative_url }}" alt="">{% endif %}
     <div class="h-event-txt">
@@ -40,6 +58,7 @@ home: true
       <span class="h-btn h-btn-orange">{{ nt.button | default: '查看详情' }} →</span>
     </div>
   </a>
+  {% endif %}
 </section>
 {% endif %}
 
