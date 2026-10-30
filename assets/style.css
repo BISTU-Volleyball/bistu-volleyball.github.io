@@ -240,3 +240,4 @@ img, video { max-width: 100%; display: block; }
   .gtables, .gbracket { grid-template-columns: 1fr; }
   .gday-list, .ghome-list { grid-template-columns: 1fr; }
 }
+.foot-note { display: inline-block; margin-top: 4px; font-size: 12px; opacity: .75; }

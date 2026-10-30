@@ -105,19 +105,22 @@ home: true
     {% comment %}
       照片墙：在发布助手「🏠 首页」里手动挑选的照片优先（_data/home.json 的 wall）；
       没挑选时自动取最新 8 篇（新闻、赛事、风采相册，不含排球课堂），每篇一张：
-      报道取一张横幅现场照（跳过开头的海报和封面、方形拼图）；风采相册取封面，视频的加 ▶
+      报道取一张横幅现场照（跳过开头的海报和封面、方形拼图）；风采相册取封面，视频的加 ▶。
+      视频最多 1 个（最新的那个）；之后的视频稿有照片就用照片（不加 ▶），没有照片就跳过
     {% endcomment %}
     {% if site.data.home.wall.size > 0 %}
       {% for w in site.data.home.wall limit: 8 %}{% assign wp = site.posts | where: "url", w.post | first %}
       {% assign wv = wp.videos | size %}<a href="{{ w.post | relative_url }}"><img src="{{ w.src | relative_url }}" alt="" loading="lazy">{% if wv > 0 or wp.channels %}<i class="h-play">▶</i>{% endif %}<span>{{ wp.title | truncate: 24 }}</span></a>
       {% endfor %}
     {% else %}
-      {% assign n = 0 %}
+      {% assign n = 0 %}{% assign nvid = 0 %}
       {% for p in site.posts %}{% if n < 8 and p.section != 'learn' %}
         {% assign pick = '' %}{% assign isv = false %}
         {% if p.section == 'gallery' %}
           {% assign nv = p.videos | size %}{% if nv > 0 or p.channels %}{% assign isv = true %}{% endif %}
-          {% assign pick = p.cover | default: '' %}{% if pick == '' and p.images.size > 0 %}{% assign pick = p.images.first %}{% endif %}
+          {% if isv and nvid >= 1 %}{% assign isv = false %}{% if p.images.size > 0 %}{% assign pick = p.images.first %}{% endif %}
+          {% else %}{% assign pick = p.cover | default: '' %}{% if pick == '' and p.images.size > 0 %}{% assign pick = p.images.first %}{% endif %}{% endif %}
+          {% if isv %}{% assign nvid = nvid | plus: 1 %}{% endif %}
         {% else %}
         {% for im in p.images %}{% assign r = p.ratios[forloop.index0] %}
           {% if pick == '' and forloop.index0 >= 2 and r >= 1.2 and r <= 1.95 and im != p.cover %}{% assign pick = im %}{% endif %}

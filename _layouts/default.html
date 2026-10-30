@@ -39,7 +39,7 @@ var _hmt = _hmt || [];
 {{ content }}
 </main>
 <footer class="foot">
-  <div class="wrap"><img class="foot-logo" src="{{ '/assets/img/logo-emblem.png' | relative_url }}" alt=""><br>© {{ site.time | date: '%Y' }} {{ site.title }}</div>
+  <div class="wrap"><img class="foot-logo" src="{{ '/assets/img/logo-emblem.png' | relative_url }}" alt=""><br>© {{ site.time | date: '%Y' }} {{ site.title }}{% if site.baidu_tongji %}<br><small class="foot-note">本站使用百度统计了解访问情况</small>{% endif %}</div>
 </footer>
 </body>
 </html>
