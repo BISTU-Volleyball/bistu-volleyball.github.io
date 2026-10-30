@@ -810,8 +810,8 @@ async function renderScores() {
       if (!p) { problems.push(`${C.stageName(m)} ${m.time} 第${k + 1}局「${t}」看不懂，请写成 21:18`); return; }
       const [a, b] = p, hi = Math.max(a, b), lo = Math.min(a, b), T = SP[k] || 15;
       if (a === b) problems.push(`${C.stageName(m)} ${m.time} 第${k + 1}局 ${a}:${b} 是平局`);
-      // 竞赛规则：前两局先得 21 分获胜（不加分，最高 21）；决胜局先得 15 分且领先 2 分
-      else if (k < 2 ? hi !== T : (hi < T || hi - lo < 2 || (hi > T && hi - lo !== 2))) problems.push(`${C.stageName(m)} ${m.time} 第${k + 1}局 ${a}:${b} 不符合规则（${k < 2 ? `前两局先得 ${T} 分获胜，胜方应正好 ${T} 分` : `决胜局先得 ${T} 分且领先 2 分`}）`);
+      // 竞赛规则（2026-10-30 改）：每局先到 21 分（决胜局 15 分）且领先 2 分获胜，20 平（14 平）后要净胜 2 分
+      else if (hi < T || hi - lo < 2 || (hi > T && hi - lo !== 2)) problems.push(`${C.stageName(m)} ${m.time} 第${k + 1}局 ${a}:${b} 不符合规则（要先到 ${T} 分且领先 2 分）`);
       sets.push(p);
     });
     if (sets.length) {
