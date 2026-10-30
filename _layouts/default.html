@@ -10,6 +10,16 @@
 {% include share-meta.html %}
 <link rel="icon" type="image/png" href="{{ '/assets/img/favicon.png' | relative_url }}">
 <link rel="apple-touch-icon" href="{{ '/assets/img/apple-touch-icon.png' | relative_url }}">
+{% comment %}百度统计（_config.yml 的 baidu_tongji；发布助手等 noindex 页面不统计，免得算进管理员自己的操作）{% endcomment %}
+{% if site.baidu_tongji and page.noindex != true %}<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?{{ site.baidu_tongji }}";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>{% endif %}
 </head>
 <body>
 <div hidden><img src="{{ share_img }}" alt=""></div>{% comment %}部分微信版本取正文第一张图做分享缩略图{% endcomment %}

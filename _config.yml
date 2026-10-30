@@ -44,3 +44,6 @@ exclude:
   - README.md
   - 使用说明.md
   - tools
+
+# 百度统计站点编号（tongji.baidu.com 账号 kathy刺 下的站点；看访问量去百度统计后台）
+baidu_tongji: 28708151a91b447b99423b39e049df2d
