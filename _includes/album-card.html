@@ -2,7 +2,7 @@
 {% assign nimg = 0 %}{% assign nvid = 0 %}{% assign acover = '' %}{% assign apos = '' %}
 {% for p in ap %}{% assign k = p.images | size %}{% assign v = p.videos | size %}{% if v == 0 and p.channels %}{% assign v = 1 %}{% assign k = k | minus: 1 %}{% endif %}{% assign nimg = nimg | plus: k %}{% assign nvid = nvid | plus: v %}{% if acover == '' and p.cover %}{% assign acover = p.cover %}{% assign apos = p.cover_pos %}{% endif %}{% endfor %}
 <a class="card album-card" href="{{ '/gallery/' | append: a.id | append: '/' | relative_url }}">
-  <div class="card-img">{% if acover != '' %}<img loading="lazy" src="{{ acover | relative_url }}" alt=""{% if apos %} style="object-position: 50% {{ apos }}"{% endif %}>{% else %}<div class="card-ph">🏐</div>{% endif %}<span class="badge">📁 相册</span></div>
+  <div class="card-img">{% if acover != '' %}<img loading="lazy" {% include thumb-src.html src=acover %} alt=""{% if apos %} style="object-position: 50% {{ apos }}"{% endif %}>{% else %}<div class="card-ph">🏐</div>{% endif %}<span class="badge">📁 相册</span></div>
   <div class="card-body">
     <h3>{{ a.name }}</h3>
     <div class="meta">{% if ap.size > 0 %}{% if nimg > 0 %}{{ nimg }} 张照片{% endif %}{% if nimg > 0 and nvid > 0 %} · {% endif %}{% if nvid > 0 %}{{ nvid }} 段视频{% endif %} · {{ ap.first.date | date: '%Y-%m-%d' }} 更新{% else %}即将更新{% endif %}</div>

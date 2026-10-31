@@ -1,0 +1,41 @@
+# 缩略图：有新图片（投稿、转载、换封面、首页活动图）时自动生成 assets/thumbs/（见 tools/make_thumbs.py）
+name: 生成缩略图
+on:
+  push:
+    branches: [main]
+    paths: ['assets/posts/**', 'assets/img/**']
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+concurrency:
+  group: thumbs
+  cancel-in-progress: false
+jobs:
+  thumbs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -q pillow
+      - run: python tools/make_thumbs.py
+      - name: 提交
+        id: commit
+        run: |
+          git config user.name "缩略图助手"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A assets/thumbs
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -q -m "生成缩略图"
+          for i in 1 2 3 4 5; do git pull -q --rebase && git push -q && break; sleep 5; done
+          echo "made=1" >> "$GITHUB_OUTPUT"
+      - name: 重新构建网站（机器人提交不会自动触发构建）
+        if: steps.commit.outputs.made == '1'
+        run: |
+          curl -s -o /dev/null -w "%{http_code}\n" -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/pages/builds || true

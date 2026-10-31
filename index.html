@@ -35,7 +35,7 @@ home: true
   {% comment %}notice.games 填了赛程比分页地址（如 /games/2026/）时：多出「赛程」「积分榜」按钮，下面显示今日比赛（assets/games.js）{% endcomment %}
   {% if nt.games %}{% assign gurl = nt.games | relative_url %}
   <div class="h-event">
-    {% if nt.image %}<a href="{{ gurl }}"><img src="{{ nt.image | relative_url }}" alt=""></a>{% endif %}
+    {% if nt.image %}<a href="{{ gurl }}"><img {% include thumb-src.html src=nt.image %} alt=""></a>{% endif %}
     <div class="h-event-txt">
       <h3>{{ nt.title }}</h3>
       {% if nt.desc %}<p>{{ nt.desc }}</p>{% endif %}
@@ -51,7 +51,7 @@ home: true
   <script src="{{ '/assets/games.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
   {% else %}
   <a class="h-event" href="{{ nt.url | default: '#' }}">
-    {% if nt.image %}<img src="{{ nt.image | relative_url }}" alt="">{% endif %}
+    {% if nt.image %}<img {% include thumb-src.html src=nt.image %} alt="">{% endif %}
     <div class="h-event-txt">
       <h3>{{ nt.title }}</h3>
       {% if nt.desc %}<p>{{ nt.desc }}</p>{% endif %}
@@ -69,7 +69,7 @@ home: true
   <div class="h-news">
     {% assign sec = site.sections | where: "key", lead.section | first %}
     <a class="h-lead" href="{% include post-href.html post=lead %}">
-      <div class="h-lead-img"><img src="{{ lead.cover | relative_url }}" alt=""{% if lead.cover_pos %} style="object-position: 50% {{ lead.cover_pos }}"{% endif %}></div>
+      <div class="h-lead-img"><img {% include thumb-src.html src=lead.cover %} alt=""{% if lead.cover_pos %} style="object-position: 50% {{ lead.cover_pos }}"{% endif %}></div>
       <div class="h-lead-txt">
         <div class="h-meta"><span class="h-tag h-tag-{{ lead.section }}">{{ sec.name }}</span>{{ lead.date | date: '%Y年%-m月%-d日' }}</div>
         <h3>{{ lead.title }}</h3>
@@ -79,7 +79,7 @@ home: true
     <div class="h-list">
       {% for p in news offset: 1 limit: 4 %}{% assign sec = site.sections | where: "key", p.section | first %}
       <a class="h-item" href="{% include post-href.html post=p %}">
-        <img src="{{ p.cover | relative_url }}" alt="" loading="lazy"{% if p.cover_pos %} style="object-position: 50% {{ p.cover_pos }}"{% endif %}>
+        <img {% include thumb-src.html src=p.cover %} alt="" loading="lazy"{% if p.cover_pos %} style="object-position: 50% {{ p.cover_pos }}"{% endif %}>
         <div>
           <div class="h-meta"><span class="h-tag h-tag-{{ p.section }}">{{ sec.name }}</span>{{ p.date | date: '%Y-%m-%d' }}</div>
           <h4>{{ p.title }}</h4>
@@ -110,7 +110,7 @@ home: true
     {% endcomment %}
     {% if site.data.home.wall.size > 0 %}
       {% for w in site.data.home.wall limit: 8 %}{% assign wp = site.posts | where: "url", w.post | first %}
-      {% assign wv = wp.videos | size %}<a href="{{ w.post | relative_url }}"><img src="{{ w.src | relative_url }}" alt="" loading="lazy">{% if wv > 0 or wp.channels %}<i class="h-play">▶</i>{% endif %}<span>{{ wp.title | truncate: 24 }}</span></a>
+      {% assign wv = wp.videos | size %}<a href="{{ w.post | relative_url }}"><img {% include thumb-src.html src=w.src %} alt="" loading="lazy">{% if wv > 0 or wp.channels %}<i class="h-play">▶</i>{% endif %}<span>{{ wp.title | truncate: 24 }}</span></a>
       {% endfor %}
     {% else %}
       {% assign n = 0 %}{% assign nvid = 0 %}
@@ -127,7 +127,7 @@ home: true
         {% endfor %}
         {% endif %}
         {% if pick != '' %}{% assign n = n | plus: 1 %}
-        <a href="{% include post-href.html post=p %}"><img src="{{ pick | relative_url }}" alt="" loading="lazy">{% if isv %}<i class="h-play">▶</i>{% endif %}<span>{{ p.title | truncate: 24 }}</span></a>
+        <a href="{% include post-href.html post=p %}"><img {% include thumb-src.html src=pick %} alt="" loading="lazy">{% if isv %}<i class="h-play">▶</i>{% endif %}<span>{{ p.title | truncate: 24 }}</span></a>
         {% endif %}
       {% endif %}{% endfor %}
     {% endif %}

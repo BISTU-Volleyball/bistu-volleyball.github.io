@@ -2,7 +2,7 @@
 {% assign p = include.post %}{% assign v = p.videos | first %}
 <a class="lesson" href="{% include post-href.html post=p %}" data-topic="{{ p.topic }}">
   <div class="lesson-img">
-    {% if p.cover %}<img loading="lazy" src="{{ p.cover | relative_url }}" alt=""{% if p.cover_pos %} style="object-position: 50% {{ p.cover_pos }}"{% endif %}>{% else %}<div class="card-ph">🏐</div>{% endif %}
+    {% if p.cover %}<img loading="lazy" {% include thumb-src.html src=p.cover %} alt=""{% if p.cover_pos %} style="object-position: 50% {{ p.cover_pos }}"{% endif %}>{% else %}<div class="card-ph">🏐</div>{% endif %}
     {% if v or p.channels %}<span class="lesson-play">▶</span>{% endif %}{% if p.channels %}<span class="lesson-dur lesson-sph">视频号</span>{% endif %}
     {% if v.duration %}{% assign mm = v.duration | divided_by: 60 %}{% assign ss = v.duration | modulo: 60 %}<span class="lesson-dur">{{ mm }}:{% if ss < 10 %}0{% endif %}{{ ss }}</span>{% endif %}
   </div>
