@@ -424,7 +424,7 @@ async function submit() {
         if (media.supported()) {
           const label = `${quality === 'high' ? '高清' : ''}${wm ? '处理并加水印' : '压缩'}`;
           step(`${label}${tag}…`);
-          blob = (await media.compress(f, p => step(`${label}${tag}：${Math.round(p * 100)}%`), wm, quality).catch(e => { throw new Error(`「${f.name}」${e.message}`); })).blob;
+          blob = (await media.compress(f, (p, again) => step(`${label}${tag}${again ? `（体积超过 ${MAX_MB[quality]}MB，降低码率重压第 ${again} 次）` : ''}：${Math.round(p * 100)}%`), wm, quality).catch(e => { throw new Error(`「${f.name}」${e.message}`); })).blob;
         } else if (wm) throw new Error('排球课堂的视频要在浏览器里加水印，这个浏览器不支持，请换用电脑上最新版的 Chrome 或 Edge');
         else if (/\.mp4$/i.test(f.name) && f.size <= 20 * 1048576) blob = f;
         else throw new Error('这个浏览器不能压缩视频，请换用电脑上最新版的 Chrome 或 Edge');

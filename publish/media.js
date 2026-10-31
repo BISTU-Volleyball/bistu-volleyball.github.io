@@ -34,7 +34,19 @@ function fitHigh(P, dur) {
   }
   return { ...P, long: HIGH_LONG_SMALL, bitrate: Math.round(bps) };
 }
+// 浏览器编码器（尤其显卡编码、画面动作多时）常比设定码率超出 10% 以上：压完仍超上限就按超出比例降码率重压，最多再压 2 次
 export async function compress(file, onProgress, watermark, quality = 'standard') {
+  const limit = (PROFILES[quality] || PROFILES.standard).maxMB * 1048576;
+  let scale = 1, r;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    r = await compressOnce(file, p => onProgress && onProgress(p, attempt), watermark, quality, scale);
+    if (r.skipped || r.blob.size <= limit) return { ...r, retries: attempt };
+    scale *= limit * 0.92 / r.blob.size;
+  }
+  return { ...r, retries: 2 };
+}
+
+async function compressOnce(file, onProgress, watermark, quality, scale) {
   let P = PROFILES[quality] || PROFILES.standard;
   const input = new Input({ formats: ALL_FORMATS, source: new BlobSource(file) });
   const vt = await input.getPrimaryVideoTrack();
@@ -49,6 +61,7 @@ export async function compress(file, onProgress, watermark, quality = 'standard'
     && (quality === 'high' ? fps <= 61 && file.size <= P.maxMB * 1048576 : fps <= 31 && kbps <= P.skipKbps)
     && (!at || at.codec === 'aac');
   if (quality === 'high' && !skip) P = fitHigh(P, dur);
+  if (scale < 1) P = { ...P, bitrate: Math.round(P.bitrate * scale) };
   const size = long > P.long ? (landscape ? { width: P.long } : { height: P.long }) : {};
   const video = { ...size, ...(fps > 31 ? { frameRate: 30 } : {}), codec: 'avc', bitrate: P.bitrate, forceTranscode: true };
   if (watermark) {
