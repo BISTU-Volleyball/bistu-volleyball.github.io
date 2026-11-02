@@ -241,3 +241,10 @@ img, video { max-width: 100%; display: block; }
   .gday-list, .ghome-list { grid-template-columns: 1fr; }
 }
 .foot-note { display: inline-block; margin-top: 4px; font-size: 12px; opacity: .75; }
+/* 队名一行放下：「胜」标记不换行，名字太长时缩小、再不行就省略号 */
+.gm-team { display: flex; align-items: center; gap: 4px; min-width: 0; white-space: nowrap; }
+.gm-team i { margin-right: 0; flex: none; }
+.gm-b { justify-content: flex-end; }
+.gm-n { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.gm-team.win::after, .gm-b.win::before { flex: none; margin: 0; }
+@media (max-width: 420px) { .gm-team { font-size: 14px; } .gm-score { min-width: 54px; font-size: 20px; } }

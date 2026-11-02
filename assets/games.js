@@ -69,7 +69,7 @@
   function matchCard(G, m, today) {
     const r = result(m), A = team(G, m.a), B = team(G, m.b);
     const win = r.done ? (r.sa > r.sb ? 'a' : 'b') : '';
-    const side = (t, k) => `<div class="gm-team gm-${k}${win === k ? ' win' : ''}${t.tbd ? ' tbd' : ''}">${t.id && m.stage === 'group' ? `<i>${t.id}</i>` : ''}${esc(t.name)}</div>`;
+    const side = (t, k) => `<div class="gm-team gm-${k}${win === k ? ' win' : ''}${t.tbd ? ' tbd' : ''}">${t.id && m.stage === 'group' ? `<i>${t.id}</i>` : ''}<span class="gm-n">${esc(t.name)}</span></div>`;
     return `<div class="gm${m.date === today ? ' today' : ''}${r.done ? ' done' : ''}">
       <div class="gm-meta"><span class="gm-stage gm-${m.stage}">${esc(stageName(m))}</span>${esc(m.time)}${m.court ? ` · ${esc(m.court)}` : ''}</div>
       <div class="gm-body">${side(A, 'a')}<div class="gm-score">${r.done || r.sa != null ? `<b>${r.sa}</b><em>:</em><b>${r.sb}</b>` : '<span>VS</span>'}</div>${side(B, 'b')}</div>
