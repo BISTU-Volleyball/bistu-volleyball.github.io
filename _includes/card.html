@@ -1,6 +1,7 @@
 {% assign p = include.post %}{% assign sec = site.sections | where: "key", p.section | first %}
 <a class="card" href="{% include post-href.html post=p %}">
-  <div class="card-img">{% if p.cover %}<img loading="lazy" {% include thumb-src.html src=p.cover %} alt=""{% if p.cover_pos %} style="object-position: 50% {{ p.cover_pos }}"{% endif %}>{% else %}<div class="card-ph">🏐</div>{% endif %}{% assign nv = p.videos | size %}{% if nv > 0 %}<span class="badge">▶ 视频</span>{% elsif p.channels %}<span class="badge badge-sph">▶ 视频号</span>{% endif %}</div>
+  {% comment %}cover_fit: contain = 封面完整显示（竖版封面不裁切，两边用模糊的同一张图铺底）{% endcomment %}
+  <div class="card-img{% if p.cover_fit == 'contain' and p.cover %} fit-contain" style="--bg: url('{{ p.cover | replace_first: '/assets/', '/assets/thumbs/' | relative_url }}')"{% else %}"{% endif %}>{% if p.cover %}<img loading="lazy" {% include thumb-src.html src=p.cover %} alt=""{% if p.cover_pos %} style="object-position: 50% {{ p.cover_pos }}"{% endif %}>{% else %}<div class="card-ph">🏐</div>{% endif %}{% assign nv = p.videos | size %}{% if nv > 0 %}<span class="badge">▶ 视频</span>{% elsif p.channels %}<span class="badge badge-sph">▶ 视频号</span>{% endif %}</div>
   <div class="card-body">
     <div class="meta">{% if sec %}<span class="tag">{{ sec.name }}</span>{% endif %}{{ p.date | date: '%Y-%m-%d' }}</div>
     <h3>{{ p.title }}</h3>

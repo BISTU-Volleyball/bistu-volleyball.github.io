@@ -248,3 +248,8 @@ img, video { max-width: 100%; display: block; }
 .gm-n { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .gm-team.win::after, .gm-b.win::before { flex: none; margin: 0; }
 @media (max-width: 420px) { .gm-team { font-size: 14px; } .gm-score { min-width: 54px; font-size: 20px; } }
+/* 完整显示封面（cover_fit: contain）：整张图居中，两边用同一张图的模糊放大版铺底 */
+.fit-contain { overflow: hidden; }
+.fit-contain::before { content: ""; position: absolute; inset: -24px; background: var(--bg) center / cover no-repeat; filter: blur(18px) brightness(.8) saturate(1.1); }
+.fit-contain img { object-fit: contain !important; z-index: 1; position: absolute; inset: 0; }
+.fit-contain .badge, .fit-contain .h-play, .fit-contain span { z-index: 2; }

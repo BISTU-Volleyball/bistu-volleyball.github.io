@@ -217,6 +217,7 @@ def build_channels(url, section='news', requester='', extra=None):
     data = {'layout': 'post', 'title': title, 'date': f'{date} 12:00:00 +0800', 'section': section if section in SECTIONS else 'news',
             'author': author, 'summary': cut_summary(' '.join(text_lines)) or title, 'cover': images[0] if images else '',
             'images': images, 'ratios': ratios, 'channels': link,
+            'cover_fit': 'contain' if ratios and ratios[0] < 1.2 else None,
             'topic': extra.get('topic') if section == 'learn' else None, 'level': extra.get('level') if section == 'learn' else None,
             **album_fields(section, extra),
             'submitted': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), 'submitted_by': requester, 'source_url': link}

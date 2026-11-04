@@ -64,7 +64,7 @@ function explain(e) {
 
 // ---------- 文章文件格式 ----------
 // front matter 每行一个 key: JSON 值（JSON 也是合法 YAML）；正文每段一行，包在 raw 里防止 Liquid 误解析
-const FM_KEYS = ['layout', 'title', 'date', 'section', 'album', 'album_name', 'author', 'summary', 'cover', 'cover_pos', 'images', 'originals', 'ratios', 'videos', 'attachments', 'channels', 'topic', 'level', 'submitted', 'submitted_by', 'source_url', 'approved_by'];
+const FM_KEYS = ['layout', 'title', 'date', 'section', 'album', 'album_name', 'author', 'summary', 'cover', 'cover_pos', 'cover_fit', 'images', 'originals', 'ratios', 'videos', 'attachments', 'channels', 'topic', 'level', 'submitted', 'submitted_by', 'source_url', 'approved_by'];
 
 function buildPost(p) {
   const paras = p.text.split('\n').map(s => s.trim().replace(/\{%\s*endraw\s*%\}/g, '')).filter(Boolean);
@@ -573,7 +573,8 @@ async function renderPending() {
         <div class="cover-pick"><span>首页封面（卡片按这个范围截取）</span>
           <div class="cover-box"><img class="eCoverImg" src="${p.cover ? url(p.cover) : ''}" style="object-position: 50% ${esc(p.cover_pos || '50%')}"${p.cover ? '' : ' hidden'}></div>
           <select class="eCoverPos">${COVER_POS.map(([v, n]) => `<option value="${v}"${v === (p.cover_pos || '50%') ? ' selected' : ''}>${n}</option>`).join('')}</select>
-          <label class="btn">上传新封面<input type="file" class="eCoverFile" accept="image/*" hidden></label></div>
+          <label class="btn">上传新封面<input type="file" class="eCoverFile" accept="image/*" hidden></label>
+          <label class="hs-check"><input type="checkbox" class="eCoverFit"${p.cover_fit === 'contain' ? ' checked' : ''}> 完整显示（竖版封面不裁切，两边模糊铺底）</label></div>
         <label>正文<textarea class="eText" rows="6">${esc(p.text)}</textarea></label>`
       : `<h3>${esc(p.title)}</h3><div class="meta">${esc(secName(p.section))}${p.album_name ? ` · 新建相册：${esc(p.album_name)}` : ''} · ${esc(p.date)}</div><div class="pv-text">${p.text.split('\n').map(s => `<p>${esc(s)}</p>`).join('')}</div>`}
       ${isAdmin ? '<div class="pv-media eMedia"></div>' + attachList(p.attachments) : preview(p)}
@@ -628,7 +629,7 @@ async function renderPending() {
     };
     card.querySelector('[data-act="ok"]').onclick = () => act(card, async () => {
       const pos = card.querySelector('.eCoverPos')?.value;
-      const q = { ...p, title: card.querySelector('.eTitle').value.trim(), section: card.querySelector('.eSec').value, date: card.querySelector('.eDate').value, text: card.querySelector('.eText').value, cover_pos: pos && pos !== '50%' ? pos : undefined, approved_by: me.name,
+      const q = { ...p, title: card.querySelector('.eTitle').value.trim(), section: card.querySelector('.eSec').value, date: card.querySelector('.eDate').value, text: card.querySelector('.eText').value, cover_pos: pos && pos !== '50%' ? pos : undefined, cover_fit: card.querySelector('.eCoverFit')?.checked ? 'contain' : undefined, approved_by: me.name,
         images: st.images, originals: st.originals || undefined, ratios: st.ratios || undefined, cover: st.cover || undefined };
       // 换了封面：新封面用新文件名（避免浏览器缓存旧图），旧的自传封面（不是照片、不是视频画面）一并删掉
       const coverFiles = [];

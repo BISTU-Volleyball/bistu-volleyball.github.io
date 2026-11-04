@@ -115,11 +115,12 @@ home: true
     {% else %}
       {% assign n = 0 %}{% assign nvid = 0 %}
       {% for p in site.posts %}{% if n < 8 and p.section != 'learn' %}
-        {% assign pick = '' %}{% assign isv = false %}
+        {% assign pick = '' %}{% assign isv = false %}{% assign wfit = false %}
         {% if p.section == 'gallery' %}
           {% assign nv = p.videos | size %}{% if nv > 0 or p.channels %}{% assign isv = true %}{% endif %}
           {% if isv and nvid >= 1 %}{% assign isv = false %}{% if p.images.size > 0 %}{% assign pick = p.images.first %}{% endif %}
           {% else %}{% assign pick = p.cover | default: '' %}{% if pick == '' and p.images.size > 0 %}{% assign pick = p.images.first %}{% endif %}{% endif %}
+          {% if pick == p.cover and p.cover_fit == 'contain' %}{% assign wfit = true %}{% else %}{% assign wfit = false %}{% endif %}
           {% if isv %}{% assign nvid = nvid | plus: 1 %}{% endif %}
         {% else %}
         {% for im in p.images %}{% assign r = p.ratios[forloop.index0] %}
@@ -127,7 +128,7 @@ home: true
         {% endfor %}
         {% endif %}
         {% if pick != '' %}{% assign n = n | plus: 1 %}
-        <a href="{% include post-href.html post=p %}"><img {% include thumb-src.html src=pick %} alt="" loading="lazy">{% if isv %}<i class="h-play">▶</i>{% endif %}<span>{{ p.title | truncate: 24 }}</span></a>
+        <a href="{% include post-href.html post=p %}"{% if wfit %} class="fit-contain" style="--bg: url('{{ pick | replace_first: '/assets/', '/assets/thumbs/' | relative_url }}')"{% endif %}><img {% include thumb-src.html src=pick %} alt="" loading="lazy">{% if isv %}<i class="h-play">▶</i>{% endif %}<span>{{ p.title | truncate: 24 }}</span></a>
         {% endif %}
       {% endif %}{% endfor %}
     {% endif %}
