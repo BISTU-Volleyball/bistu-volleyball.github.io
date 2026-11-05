@@ -253,3 +253,10 @@ img, video { max-width: 100%; display: block; }
 .fit-contain::before { content: ""; position: absolute; inset: -24px; background: var(--bg) center / cover no-repeat; filter: blur(18px) brightness(.8) saturate(1.1); }
 .fit-contain img { object-fit: contain !important; z-index: 1; position: absolute; inset: 0; }
 .fit-contain .badge, .fit-contain .h-play, .fit-contain span { z-index: 2; }
+/* 比赛日阶段标记（小组赛 / 1/4决赛 / 半决赛 / 决赛） */
+.gday-stage { font-size: 12px; padding: 2px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.ghome-stage { font-style: normal; font-size: 14px; font-weight: 800; padding: 3px 12px; border-radius: 999px; background: #c25e00; color: #fff; }
+.ghome-stage.gm-stage-group { background: var(--accent); }
+.ghome-stage.gm-stage-semi { background: #c0264b; }
+.ghome-stage.gm-stage-final { background: linear-gradient(135deg, #d99a00, #b36b00); }
+.ghome-head { flex-wrap: wrap; align-items: center; }

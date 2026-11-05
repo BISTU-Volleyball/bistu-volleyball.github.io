@@ -2,7 +2,7 @@
 // 计算（胜负、C 值、Z 值、小组排名、淘汰赛对阵）全在这里，网站页面、首页「今日比赛」和发布助手共用
 // 对阵里的队伍写法：A1 = 小组签位；C#1 = C 组第一（小组赛全部打完才确定）；E#W / E#L = E 组那场的胜者 / 负者
 (function (g) {
-  const STAGE = { group: '小组赛', cross: '交叉赛', semi: '半决赛', final: '决赛' };
+  const STAGE = { group: '小组赛', cross: '1/4决赛', semi: '半决赛', final: '决赛' };
   const WEEK = '日一二三四五六';
 
   // 一场的结果：有小分（sets）按小分算局分；否则用直接填的局分 sa:sb
@@ -61,7 +61,10 @@
 
   const bjToday = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
   const dayLabel = d => { const t = new Date(d + 'T00:00:00Z'); return `${+d.slice(5, 7)}月${+d.slice(8, 10)}日（周${WEEK[t.getUTCDay()]}）`; };
-  const stageName = m => m.stage === 'group' ? `${m.a[0]}组` : (m.label || STAGE[m.stage] || '');
+  // 场次标签：小组赛「A组」；1/4决赛、半决赛「1/4决赛 · E组」；决赛、三四名用自己的名字
+  const stageName = m => m.stage === 'group' ? `${m.a[0]}组` : m.stage === 'final' ? (m.label || '决赛') : `${STAGE[m.stage]}${m.label ? ' · ' + m.label : ''}`;
+  // 这一天是哪个阶段（首页「今日比赛」和赛程日期旁显示）：全是小组赛显示「小组赛」，决赛日显示「决赛」
+  const dayStage = (G, d) => { const st = [...new Set(G.matches.filter(m => m.date === d).map(m => m.stage))]; return st.length === 1 ? STAGE[st[0]] : st.includes('final') ? '决赛' : ''; };
   const fmt = x => x == null ? '—' : x === Infinity ? '∞' : x.toFixed(2);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -83,7 +86,7 @@
       const items = [...G.matches.filter(m => m.date === d).map(m => ({ t: m.time, h: matchCard(G, m, today) })),
         ...(G.events || []).filter(e => e.date === d).map(e => ({ t: e.time, h: `<div class="gm gm-event"><div class="gm-meta">${esc(e.time)}</div><b>🎉 ${esc(e.name)}</b></div>` }))]
         .sort((x, y) => x.t.localeCompare(y.t));
-      return `<div class="gday${d === today ? ' today' : ''}${d < today ? ' past' : ''}" id="d${d}"><h3>${dayLabel(d)}${d === today ? '<span class="gday-tag">今天</span>' : ''}</h3><div class="gday-list">${items.map(x => x.h).join('')}</div></div>`;
+      return `<div class="gday${d === today ? ' today' : ''}${d < today ? ' past' : ''}" id="d${d}"><h3>${dayLabel(d)}${dayStage(G, d) ? `<span class="gday-stage">${dayStage(G, d)}</span>` : ''}${d === today ? '<span class="gday-tag">今天</span>' : ''}</h3><div class="gday-list">${items.map(x => x.h).join('')}</div></div>`;
     }).join('');
   }
 
@@ -94,12 +97,12 @@
         <table><thead><tr><th>名次</th><th class="l">队伍</th><th>场</th><th>胜</th><th>负</th><th>积分</th><th>胜局/负局</th><th>C 值</th><th>得分/失分</th><th>Z 值</th></tr></thead><tbody>
         ${rows.map((t, i) => `<tr${complete && i < 2 ? ' class="adv"' : ''}><td>${i + 1}</td><td class="l"><i>${t.id}</i>${esc(t.name)}</td><td>${t.p}</td><td>${t.w}</td><td>${t.l}</td><td><b>${t.pts}</b></td><td>${t.sw}/${t.sl}</td><td>${t.p ? fmt(t.c) : '—'}</td><td>${t.ptsOk && t.p ? `${t.pf}/${t.pa}` : '—'}</td><td>${fmt(t.z)}</td></tr>`).join('')}
         </tbody></table></div>`;
-    }).join('') + '<p class="gnote">名次依次比较：胜场数、比赛积分（2:0 胜队 3 分负队 0 分，2:1 胜队 2 分负队 1 分）、C 值、Z 值；小组前两名（绿色）进入交叉赛。“—”表示有场次只记录了局分、没有每局小分，暂时算不出。</p>';
+    }).join('') + '<p class="gnote">名次依次比较：胜场数、比赛积分（2:0 胜队 3 分负队 0 分，2:1 胜队 2 分负队 1 分）、C 值、Z 值；小组前两名（绿色）进入 1/4 决赛。“—”表示有场次只记录了局分、没有每局小分，暂时算不出。</p>';
   }
 
   function bracketHTML(G) {
     const today = bjToday(), col = (title, ids) => `<div class="gcol"><h3>${title}</h3>${ids.map(id => G.matches.find(m => m.id === id)).filter(Boolean).map(m => matchCard(G, m, today)).join('')}</div>`;
-    return `<div class="gbracket">${col('交叉赛', ['E', 'F', 'G', 'H'])}${col('半决赛', ['I', 'J'])}${col('决赛', ['final', 'third'])}</div>`;
+    return `<div class="gbracket">${col('1/4决赛', ['E', 'F', 'G', 'H'])}${col('半决赛', ['I', 'J'])}${col('决赛', ['final', 'third'])}</div>`;
   }
 
   // 首页「今日比赛」：今天有比赛显示今天，否则显示下一个比赛日；全部结束后显示决赛
@@ -107,7 +110,7 @@
     const today = bjToday(), days = [...new Set(G.matches.map(m => m.date))].sort();
     const d = days.find(x => x >= today) || days[days.length - 1];
     const ms = G.matches.filter(m => m.date === d);
-    return `<div class="ghome-head"><b>${d === today ? '今日比赛' : d > today ? '下一比赛日' : '最后一个比赛日'}</b><span>${dayLabel(d)}</span><a href="${url}#schedule">全部赛程 ›</a></div>
+    return `<div class="ghome-head"><b>${d === today ? '今日比赛' : d > today ? '下一比赛日' : '最后一个比赛日'}</b><span>${dayLabel(d)}</span>${dayStage(G, d) ? `<em class="ghome-stage gm-stage-${ms[0].stage}">${dayStage(G, d)}</em>` : ''}<a href="${url}#schedule">全部赛程 ›</a></div>
       <div class="ghome-list">${ms.map(m => matchCard(G, m, today)).join('')}</div>`;
   }
 
