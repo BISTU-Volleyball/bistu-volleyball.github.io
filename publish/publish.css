@@ -147,3 +147,4 @@ code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
 .sc-done .sc-names { color: var(--ink-2); }
 .sc-more { margin-top: 4px; font-size: 13px; }
 .sc-more summary { cursor: pointer; color: var(--ink-2); }
+.alb-row label.alb-cover { flex: 1 1 260px; }

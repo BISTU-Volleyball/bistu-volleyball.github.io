@@ -64,7 +64,7 @@ function explain(e) {
 
 // ---------- 文章文件格式 ----------
 // front matter 每行一个 key: JSON 值（JSON 也是合法 YAML）；正文每段一行，包在 raw 里防止 Liquid 误解析
-const FM_KEYS = ['layout', 'title', 'date', 'section', 'album', 'album_name', 'author', 'summary', 'cover', 'cover_pos', 'cover_fit', 'images', 'originals', 'ratios', 'videos', 'attachments', 'channels', 'topic', 'level', 'submitted', 'submitted_by', 'source_url', 'approved_by'];
+const FM_KEYS = ['layout', 'title', 'date', 'section', 'album', 'album_name', 'album_cover', 'author', 'summary', 'cover', 'cover_pos', 'cover_fit', 'images', 'originals', 'ratios', 'videos', 'attachments', 'channels', 'topic', 'level', 'submitted', 'submitted_by', 'source_url', 'approved_by'];
 
 function buildPost(p) {
   const paras = p.text.split('\n').map(s => s.trim().replace(/\{%\s*endraw\s*%\}/g, '')).filter(Boolean);
@@ -161,26 +161,32 @@ const NEW_ALBUM = '__new';
 const loadAlbums = async () => { const a = await readData('albums'); return Array.isArray(a) ? a : []; };
 const newAlbumId = () => `${today().replace(/-/g, '')}-${crypto.getRandomValues(new Uint16Array(1))[0].toString(16).padStart(4, '0')}`;
 const albumPage = a => ({ path: `gallery/${a.id}/index.html`, text: `---\nlayout: album\ntitle: ${JSON.stringify(a.name)}\nalbum: ${JSON.stringify(a.id)}\n---\n` });
-const albumsFile = list => ({ path: '_data/albums.json', text: JSON.stringify(list.map(({ id, name }) => ({ id, name })), null, 1) + '\n' });
+// cover_post：相册封面用哪一篇（文章网址，如 /posts/2026/1029-441952/）；不填就用相册里最新一篇的封面
+const albumsFile = list => ({ path: '_data/albums.json', text: JSON.stringify(list.map(({ id, name, cover_post }) => (cover_post ? { id, name, cover_post } : { id, name })), null, 1) + '\n' });
 // 投稿用的小相册选择框（x 是 id 前缀：c 自己写 / i 转载）
 const albumPicker = x => `
       <div id="${x}AlbumBox" hidden><div class="row">
         <label>小相册<select id="${x}Album"><option value="">读取中…</option></select></label>
         <label id="${x}AlbumNewL" hidden>新相册名称<input id="${x}AlbumNew" maxlength="30" placeholder="例如：2027年教职工迎新赛"></label>
-      </div><p class="hint">选一个已有的小相册，或选「＋ 新建小相册」；新建的相册审核通过后出现在网站上。</p></div>`;
+      </div><label class="hs-check" id="${x}AlbumCoverL" hidden><input type="checkbox" id="${x}AlbumCover"> 用这一组的封面替换相册封面（不勾：相册封面保持不变，只是增加内容）</label>
+      <p class="hint">选一个已有的小相册，或选「＋ 新建小相册」；新建的相册审核通过后出现在网站上。</p></div>`;
 let albumCache = null;
 function bindAlbumPicker(x) {
   const sel = $(`#${x}Album`), fill = list => {
     sel.innerHTML = '<option value="">请选择小相册</option>' + list.map(a => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('') + `<option value="${NEW_ALBUM}">＋ 新建小相册…</option>`;
   };
-  sel.onchange = () => { $(`#${x}AlbumNewL`).hidden = sel.value !== NEW_ALBUM; if (sel.value === NEW_ALBUM) $(`#${x}AlbumNew`).focus(); };
+  sel.onchange = () => {
+    $(`#${x}AlbumNewL`).hidden = sel.value !== NEW_ALBUM;
+    $(`#${x}AlbumCoverL`).hidden = !sel.value || sel.value === NEW_ALBUM;
+    if (sel.value === NEW_ALBUM) $(`#${x}AlbumNew`).focus();
+  };
   (albumCache ? Promise.resolve(albumCache) : loadAlbums().then(l => albumCache = l)).then(fill).catch(() => fill([]));
 }
 // 读选择结果：{ album } 或新建的 { album, album_name }；没选好返回 null 并提示
 function readAlbumPicker(x) {
   const v = $(`#${x}Album`).value;
   if (!v) { toast('请选择小相册（或新建一个）', true); $(`#${x}Album`).focus(); return null; }
-  if (v !== NEW_ALBUM) return { album: v };
+  if (v !== NEW_ALBUM) return $(`#${x}AlbumCover`).checked ? { album: v, album_cover: true } : { album: v };
   const name = $(`#${x}AlbumNew`).value.trim();
   if (!name) { toast('请填写新相册的名称', true); $(`#${x}AlbumNew`).focus(); return null; }
   const same = (albumCache || []).find(a => a.name === name);
@@ -568,7 +574,8 @@ async function renderPending() {
           <label>日期<input class="eDate" type="date" value="${esc(p.date)}"></label>
         </div>
         <div class="row eLearn"${p.section === 'learn' ? '' : ' hidden'}>${learnSelects('e', p)}</div>
-        <div class="row eGallery"${p.section === 'gallery' ? '' : ' hidden'}><label>小相册<select class="eAlbum"><option value="">请选择小相册</option>${albums.map(a => `<option value="${esc(a.id)}"${a.id === p.album ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}${p.album_name && !albums.some(a => a.id === p.album) ? `<option value="${esc(p.album)}" selected>新建：${esc(p.album_name)}</option>` : ''}</select></label></div>
+        <div class="row eGallery"${p.section === 'gallery' ? '' : ' hidden'}><label>小相册<select class="eAlbum"><option value="">请选择小相册</option>${albums.map(a => `<option value="${esc(a.id)}"${a.id === p.album ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}${p.album_name && !albums.some(a => a.id === p.album) ? `<option value="${esc(p.album)}" selected>新建：${esc(p.album_name)}</option>` : ''}</select></label>
+          <label class="hs-check"><input type="checkbox" class="eAlbumCover"${p.album_cover ? ' checked' : ''}> 用这一组的封面替换相册封面（不勾：相册封面不变）</label></div>
         <div class="row eSphRow"${SPH_SECS.includes(p.section) && !p.videos.length ? '' : ' hidden'}><label>视频号链接（选填）<input class="eSph" value="${esc(p.channels || '')}" placeholder="https://weixin.qq.com/sph/..."></label></div>
         <div class="cover-pick"><span>首页封面（卡片按这个范围截取）</span>
           <div class="cover-box"><img class="eCoverImg" src="${p.cover ? url(p.cover) : ''}" style="object-position: 50% ${esc(p.cover_pos || '50%')}"${p.cover ? '' : ' hidden'}></div>
@@ -670,9 +677,19 @@ async function renderPending() {
           const same = fresh.find(a => a.name === p.album_name);
           if (same) q.album = same.id;
           else { const a = { id: q.album, name: p.album_name }; extra.push(albumsFile([a, ...fresh]), albumPage(a)); }
+        } else {
+          // 已有相册：勾了就把相册封面换成这一篇；没勾就把封面固定在现在显示的那篇（否则新的一篇会自动成为封面）
+          const alb = fresh.find(a => a.id === q.album), url = relUrl({ date: q.date, slug: p.slug });
+          let changed = false;
+          if (card.querySelector('.eAlbumCover').checked) { alb.cover_post = url; changed = true; }
+          else if (!alb.cover_post) {
+            const cur = (await loadPosts('_posts')).find(x => x.album === q.album && x.cover);
+            if (cur) { alb.cover_post = relUrl(cur); changed = true; }
+          }
+          if (changed) extra.push(albumsFile(fresh));
         }
       } else delete q.album;
-      delete q.album_name;
+      delete q.album_name; delete q.album_cover;
       await commitFiles(cfg(), [{ path: `_posts/${p.slug}.md`, text: buildPost(q) }, { path: p.path, del: true }, ...st.removed.map(f => ({ path: f.replace(/^\//, ''), del: true })), ...extra, ...coverFiles], `发布：${q.title}（审核：${me.name}）`);
       albumCache = null;
       return '已发布，约 1 分钟后出现在网站上';
@@ -743,11 +760,13 @@ function drawAlbums(box, albums, posts) {
       ${list.map((a, k) => `<div class="row alb-row" data-k="${k}">
         <label>名称<input class="aName" maxlength="30" value="${esc(a.name)}"></label>
         <span class="hint alb-n">${a.id ? `${count(a.id)} 篇` : '新建'}</span>
+        ${a.id && count(a.id) ? `<label class="alb-cover">封面<select class="aCover"><option value="">自动（用最新一组）</option>${posts.filter(p => p.album === a.id).map(p => `<option value="${esc(relUrl(p))}"${relUrl(p) === a.cover_post ? ' selected' : ''}>${esc(p.date)} ${esc(p.title)}</option>`).join('')}</select></label>` : ''}
         ${k ? '<button data-a="up" title="前移">↑ 前移</button>' : ''}
         <button class="danger" data-a="del"${a.id && count(a.id) ? ' disabled title="相册里还有内容，不能删除"' : ''}>删除</button>
       </div>`).join('') || '<p class="hint">还没有小相册。</p>'}
       <div class="actions"><button data-a="add">＋ 新建小相册</button><button class="primary" data-a="save">保存小相册</button></div>`;
     box.querySelectorAll('.aName').forEach((el, k) => el.oninput = () => { list[k].name = el.value; });
+    box.querySelectorAll('.alb-row').forEach(row => { const c = row.querySelector('.aCover'); if (c) c.onchange = () => { list[+row.dataset.k].cover_post = c.value || undefined; }; });
     box.querySelectorAll('.alb-row').forEach(row => {
       const k = +row.dataset.k;
       const b = n => row.querySelector(`[data-a="${n}"]`);
@@ -761,7 +780,7 @@ function drawAlbums(box, albums, posts) {
       if (new Set(names).size < names.length) throw new Error('有两个相册同名');
       const fresh = await loadAlbums();
       if (JSON.stringify(fresh) !== JSON.stringify(albums)) throw new Error('小相册刚被别人改过（可能有投稿新建了相册），请刷新后再改');
-      const out = list.map((a, k) => ({ id: a.id || newAlbumId() + k, name: names[k], was: a.was }));
+      const out = list.map((a, k) => ({ id: a.id || newAlbumId() + k, name: names[k], was: a.was, cover_post: a.cover_post }));
       const files = [albumsFile(out), ...out.filter(a => a.name !== a.was).map(albumPage),
         ...albums.filter(a => !out.some(o => o.id === a.id)).map(a => ({ path: `gallery/${a.id}/index.html`, del: true }))];
       await commitFiles(cfg(), files, `更新小相册（${me.name}）`);
