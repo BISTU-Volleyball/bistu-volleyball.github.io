@@ -148,3 +148,4 @@ code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
 .sc-more { margin-top: 4px; font-size: 13px; }
 .sc-more summary { cursor: pointer; color: var(--ink-2); }
 .alb-row label.alb-cover { flex: 1 1 260px; }
+.append-note { margin: 6px 0 10px; padding: 8px 12px; border-radius: 10px; background: #fff6ec; border: 1px solid #ffd9a8; font-size: 14px; color: #7a4100; }

@@ -64,7 +64,7 @@ function explain(e) {
 
 // ---------- 文章文件格式 ----------
 // front matter 每行一个 key: JSON 值（JSON 也是合法 YAML）；正文每段一行，包在 raw 里防止 Liquid 误解析
-const FM_KEYS = ['layout', 'title', 'date', 'section', 'album', 'album_name', 'album_cover', 'author', 'summary', 'cover', 'cover_pos', 'cover_fit', 'images', 'originals', 'ratios', 'videos', 'attachments', 'channels', 'topic', 'level', 'submitted', 'submitted_by', 'source_url', 'approved_by'];
+const FM_KEYS = ['layout', 'title', 'date', 'section', 'album', 'album_name', 'album_cover', 'append_to', 'author', 'summary', 'cover', 'cover_pos', 'cover_fit', 'images', 'originals', 'ratios', 'videos', 'attachments', 'channels', 'topic', 'level', 'submitted', 'submitted_by', 'source_url', 'approved_by'];
 
 function buildPost(p) {
   const paras = p.text.split('\n').map(s => s.trim().replace(/\{%\s*endraw\s*%\}/g, '')).filter(Boolean);
@@ -168,24 +168,50 @@ const albumPicker = x => `
       <div id="${x}AlbumBox" hidden><div class="row">
         <label>小相册<select id="${x}Album"><option value="">读取中…</option></select></label>
         <label id="${x}AlbumNewL" hidden>新相册名称<input id="${x}AlbumNew" maxlength="30" placeholder="例如：2027年教职工迎新赛"></label>
-      </div><label class="hs-check" id="${x}AlbumCoverL" hidden><input type="checkbox" id="${x}AlbumCover"> 用这一组的封面替换相册封面（不勾：相册封面保持不变，只是增加内容）</label>
+      </div>${x === 'c' ? `<div class="row" id="cAppendRow" hidden><label>这次上传<select id="cAppend"></select></label></div>` : ''}<label class="hs-check" id="${x}AlbumCoverL" hidden><input type="checkbox" id="${x}AlbumCover"> 用这一组的封面替换相册封面（不勾：相册封面保持不变，只是增加内容）</label>
       <p class="hint">选一个已有的小相册，或选「＋ 新建小相册」；新建的相册审核通过后出现在网站上。</p></div>`;
 let albumCache = null;
 function bindAlbumPicker(x) {
   const sel = $(`#${x}Album`), fill = list => {
     sel.innerHTML = '<option value="">请选择小相册</option>' + list.map(a => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('') + `<option value="${NEW_ALBUM}">＋ 新建小相册…</option>`;
   };
-  sel.onchange = () => {
-    $(`#${x}AlbumNewL`).hidden = sel.value !== NEW_ALBUM;
-    $(`#${x}AlbumCoverL`).hidden = !sel.value || sel.value === NEW_ALBUM;
-    if (sel.value === NEW_ALBUM) $(`#${x}AlbumNew`).focus();
+  const ap = $(`#${x}Append`);
+  // 追加只在选了已有相册、相册里已有文章时可选；最新一篇是纯照片（没有视频）时默认追加到它，否则默认新建一组
+  const syncAppend = () => {
+    const appending = ap && ap.value;
+    $(`#${x}AlbumCoverL`).hidden = !sel.value || sel.value === NEW_ALBUM || !!appending;
+    if (x === 'c') $('#cTitle').placeholder = appending ? '选填（追加时可不填）' : '例如：我校教职工气排球团体赛圆满落幕';
   };
+  sel.onchange = async () => {
+    $(`#${x}AlbumNewL`).hidden = sel.value !== NEW_ALBUM;
+    if (sel.value === NEW_ALBUM) $(`#${x}AlbumNew`).focus();
+    if (ap) {
+      const row = $(`#${x}AppendRow`);
+      row.hidden = true; ap.innerHTML = '<option value="">新建一组（单独一篇）</option>';
+      if (sel.value && sel.value !== NEW_ALBUM) {
+        const id = sel.value, ps = (await publishedCache()).filter(p => p.album === id);
+        if (sel.value !== id) return;
+        if (ps.length) {
+          ap.innerHTML += ps.map(p => `<option value="${esc(p.slug)}">追加到「${esc(p.title)}」（${p.images.length} 张照片）</option>`).join('');
+          if (!ps[0].videos.length && !ps[0].channels) ap.value = ps[0].slug;
+          row.hidden = false;
+        }
+      }
+    }
+    syncAppend();
+  };
+  if (ap) ap.onchange = syncAppend;
   (albumCache ? Promise.resolve(albumCache) : loadAlbums().then(l => albumCache = l)).then(fill).catch(() => fill([]));
 }
+// 已发布的文章（追加时选目标用），一个页面里只读一次
+let pubCache = null;
+const publishedCache = () => pubCache || (pubCache = loadPosts('_posts').catch(e => { pubCache = null; throw e; }));
 // 读选择结果：{ album } 或新建的 { album, album_name }；没选好返回 null 并提示
 function readAlbumPicker(x) {
   const v = $(`#${x}Album`).value;
   if (!v) { toast('请选择小相册（或新建一个）', true); $(`#${x}Album`).focus(); return null; }
+  const ap = $(`#${x}Append`);
+  if (v !== NEW_ALBUM && ap && ap.value) return { album: v, append_to: ap.value };
   if (v !== NEW_ALBUM) return $(`#${x}AlbumCover`).checked ? { album: v, album_cover: true } : { album: v };
   const name = $(`#${x}AlbumNew`).value.trim();
   if (!name) { toast('请填写新相册的名称', true); $(`#${x}AlbumNew`).focus(); return null; }
@@ -371,8 +397,12 @@ function renderWrite() {
 }
 
 async function submit() {
-  const title = $('#cTitle').value.trim(), text = $('#cText').value, date = $('#cDate').value, section = $('#cSec').value;
+  const text = $('#cText').value, date = $('#cDate').value, section = $('#cSec').value;
+  const appendTo = section === 'gallery' && $('#cAppend') ? $('#cAppend').value : '';
+  let title = $('#cTitle').value.trim();
+  if (appendTo && !title) title = '追加照片：' + ((await publishedCache()).find(p => p.slug === appendTo) || {}).title;
   if (!title) return toast('请填写标题', true);
+  if (appendTo && !draft.photos.length && !draft.videos.length) return toast('追加到已有的一篇时，请至少选一张照片或一个视频', true);
   if (!text.trim() && !draft.photos.length && !draft.videos.length && !draft.files.length) return toast('正文、照片、视频、附件至少要有一样', true);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return toast('请选择日期', true);
   const BAD_SPH = '视频号链接不对：请在视频号里点「···」→「复制链接」后粘贴（weixin.qq.com/sph/…）';
@@ -468,6 +498,7 @@ async function submit() {
     if (draft.cover) URL.revokeObjectURL(draft.cover.preview);
     draft.photos = []; draft.videos = []; draft.files = []; draft.cover = null;
     if (album.album_name) albumCache = null;
+    pubCache = null;
     toast('已提交，等待管理员审核');
     tab = 'pending';
     busy = false; render();
@@ -567,6 +598,7 @@ async function renderPending() {
     posts.map((p, i) => `
     <div class="panel item" data-i="${i}">
       <div class="meta">${esc(p.author || '未署名')} · 投稿于 ${esc((p.submitted || '').slice(0, 10))}</div>
+      ${p.append_to ? `<div class="append-note">📎 这是<b>追加内容</b>：通过后照片、视频和文字会并入已发布的那一篇（<code>${esc(p.append_to)}</code>），不会新增一篇。标题、栏目、封面等设置以原来那篇为准。</div>` : ''}
       ${isAdmin ? `
         <label>标题<input class="eTitle" value="${esc(p.title)}"></label>
         <div class="row">
@@ -585,7 +617,7 @@ async function renderPending() {
         <label>正文<textarea class="eText" rows="6">${esc(p.text)}</textarea></label>`
       : `<h3>${esc(p.title)}</h3><div class="meta">${esc(secName(p.section))}${p.album_name ? ` · 新建相册：${esc(p.album_name)}` : ''} · ${esc(p.date)}</div><div class="pv-text">${p.text.split('\n').map(s => `<p>${esc(s)}</p>`).join('')}</div>`}
       ${isAdmin ? '<div class="pv-media eMedia"></div>' + attachList(p.attachments) : preview(p)}
-      ${isAdmin ? '<div class="actions"><button class="primary" data-act="ok">通过并发布</button><button class="danger" data-act="no">退回（删除）</button></div>' : ''}
+      ${isAdmin ? `<div class="actions"><button class="primary" data-act="ok">${p.append_to ? '通过并追加' : '通过并发布'}</button><button class="danger" data-act="no">退回（删除）</button></div>` : ''}
     </div>`).join('');
   if (!isAdmin) return;
   list.querySelectorAll('.item').forEach(card => {
@@ -635,6 +667,7 @@ async function renderPending() {
       ci.src = URL.createObjectURL(f); ci.hidden = false;
     };
     card.querySelector('[data-act="ok"]').onclick = () => act(card, async () => {
+      if (p.append_to) return appendInto(p, st, card.querySelector('.eText').value);
       const pos = card.querySelector('.eCoverPos')?.value;
       const q = { ...p, title: card.querySelector('.eTitle').value.trim(), section: card.querySelector('.eSec').value, date: card.querySelector('.eDate').value, text: card.querySelector('.eText').value, cover_pos: pos && pos !== '50%' ? pos : undefined, cover_fit: card.querySelector('.eCoverFit')?.checked ? 'contain' : undefined, approved_by: me.name,
         images: st.images, originals: st.originals || undefined, ratios: st.ratios || undefined, cover: st.cover || undefined };
@@ -705,6 +738,28 @@ async function renderPending() {
   });
 }
 
+// 追加：把投稿 p 的照片、视频、文字并进已发布的 p.append_to（照片文件留在投稿自己的文件夹里，路径照写）
+async function appendInto(p, st, text) {
+  const tp = `_posts/${p.append_to}.md`;
+  const d = await gh(`/contents/${tp}?ref=main`).catch(e => { if (e.status === 404) throw new Error('要追加的那一篇已经不在了（可能被删除或撤回），请退回这条投稿'); throw e; });
+  const t = parsePost(b64text(d.content));
+  const n = t.images.length, nv = t.videos.length, imgs = st.images;
+  const fill = (arr, len, def) => arr && arr.length === len ? arr : Array.from({ length: len }, (_, i) => def(i));
+  const merged = { ...t, images: [...t.images, ...imgs], videos: [...t.videos, ...p.videos],
+    ratios: [...fill(t.ratios, n, () => 1.333), ...fill(st.ratios, imgs.length, () => 1.333)] };
+  if (t.originals || st.originals) merged.originals = [...fill(t.originals, n, i => t.images[i]), ...fill(st.originals, imgs.length, i => imgs[i])];
+  // 追加的文字里【图1】【视频1】要接着原来的编号
+  const add = text.replace(/【图(\d+)】/g, (m, k) => `【图${+k + n}】`).replace(/【视频(\d+)】/g, (m, k) => `【视频${+k + nv}】`);
+  merged.text = [t.text, add].filter(x => x && x.trim()).join('\n');
+  await commitFiles(cfg(), [{ path: tp, text: buildPost(merged) }, { path: p.path, del: true }, ...st.removed.map(f => ({ path: f.replace(/^\//, ''), del: true }))], `追加照片：${t.title}（审核：${me.name}）`);
+  pubCache = null;
+  return `已并入「${t.title}」，约 1 分钟后网站更新`;
+}
+
+// 一篇文章用到的、放在别的文件夹里的文件（追加进来的照片），删除文章时一起删
+const borrowedFiles = p => [...new Set([...p.images, ...(p.originals || []), ...p.videos.flatMap(v => [v.src, v.poster]), ...(p.attachments || []).map(a => a.src), p.cover]
+  .filter(Boolean).map(x => String(x).replace(/^\//, '')).filter(x => x.startsWith('assets/posts/') && !x.startsWith(`assets/posts/${p.slug}/`)))];
+
 async function act(card, fn) {
   if (busy) return;
   busy = true;
@@ -744,7 +799,7 @@ async function renderPublished() {
       if (!confirm(`确定删除「${p.title}」？文章和它的照片视频都会从网站删除（GitHub 历史里仍可找回）。`)) return;
       act(card, async () => {
         const assets = await listDir(`assets/posts/${p.slug}`);
-        await commitFiles(cfg(), [{ path: p.path, del: true }, ...assets.map(f => ({ path: f.path, del: true }))], `删除：${p.title}（${me.name}）`);
+        await commitFiles(cfg(), [{ path: p.path, del: true }, ...assets.map(f => ({ path: f.path, del: true })), ...borrowedFiles(p).map(path => ({ path, del: true }))], `删除：${p.title}（${me.name}）`);
         return '已删除';
       });
     };
