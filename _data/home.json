@@ -45,5 +45,38 @@
   "button": "去投票",
   "games": "/games/2026/"
  },
- "wall": []
+ "wall": [
+  {
+   "src": "/assets/posts/2026-11-05-f0f99f/p1.jpg",
+   "post": "/posts/2026/1105-f0f99f/"
+  },
+  {
+   "src": "/assets/posts/2026-11-05-f0f99f/p11.jpg",
+   "post": "/posts/2026/1105-f0f99f/"
+  },
+  {
+   "src": "/assets/posts/2026-11-05-f0f99f/p9.jpg",
+   "post": "/posts/2026/1105-f0f99f/"
+  },
+  {
+   "src": "/assets/posts/2026-11-05-f0f99f/p2.jpg",
+   "post": "/posts/2026/1105-f0f99f/"
+  },
+  {
+   "src": "/assets/posts/2026-11-05-f0f99f/p7.jpg",
+   "post": "/posts/2026/1105-f0f99f/"
+  },
+  {
+   "src": "/assets/posts/2026-11-05-f0f99f/p13.jpg",
+   "post": "/posts/2026/1105-f0f99f/"
+  },
+  {
+   "src": "/assets/posts/2026-11-05-f0f99f/p6.jpg",
+   "post": "/posts/2026/1105-f0f99f/"
+  },
+  {
+   "src": "/assets/posts/2026-11-05-f0f99f/p14.jpg",
+   "post": "/posts/2026/1105-f0f99f/"
+  }
+ ]
 }
