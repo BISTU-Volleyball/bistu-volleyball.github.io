@@ -262,7 +262,7 @@ img, video { max-width: 100%; display: block; }
 .ghome-head { flex-wrap: wrap; align-items: center; }
 /* ---------- 文章页看大图（assets/lightbox.js）---------- */
 .lb-on, .lb-on body { overflow: hidden; }
-.lb { position: fixed; inset: 0; z-index: 1000; background: rgba(8, 10, 20, .94); display: flex; align-items: center; justify-content: center; }
+.lb { position: fixed; inset: 0; z-index: 1000; background: rgba(6, 8, 16, .985); display: flex; align-items: center; justify-content: center; }
 .lb[hidden] { display: none; }
 .lb-stage { position: absolute; inset: 0 0 56px; display: flex; align-items: center; justify-content: center; }
 .lb-img { max-width: 100%; max-height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; }
