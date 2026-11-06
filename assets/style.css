@@ -281,4 +281,4 @@ img, video { max-width: 100%; display: block; }
 .lb-orig[hidden] { display: none; }
 .lb-tip { opacity: .55; font-size: 12px; }
 @media (hover: hover) { .lb-tip { display: none; } }
-@media (max-width: 600px) { .lb-prev, .lb-next { display: none; } }
+@media (max-width: 600px) { .lb-prev, .lb-next { width: 36px; height: 36px; font-size: 24px; background: rgba(255, 255, 255, .16); } .lb-prev { left: 6px; } .lb-next { right: 6px; } }
