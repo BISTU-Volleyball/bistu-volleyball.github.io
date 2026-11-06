@@ -1,0 +1,67 @@
+# 原图搬家：投稿里的原图（*-orig.*）自动搬到原图仓库 BISTU-Volleyball/originals，主站只留缩略图和显示版（见 tools/move_originals.py）
+# 需要组织 Owner 在本仓库 Settings → Secrets and variables → Actions 里存一把能写 originals 仓库的钥匙：ORIGINALS_TOKEN
+name: 原图搬到原图仓库
+on:
+  push:
+    branches: [main]
+    paths: ['assets/posts/**', '_posts/**', '_pending/**']
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+concurrency:
+  group: originals
+  cancel-in-progress: false
+jobs:
+  move:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: 检查钥匙
+        id: key
+        env:
+          T: ${{ secrets.ORIGINALS_TOKEN }}
+        run: |
+          if [ -z "$T" ]; then echo "还没有设置 ORIGINALS_TOKEN，先跳过（原图暂时留在主站）"; echo "skip=1" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.skip != '1'
+        with:
+          path: site
+          fetch-depth: 1
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.skip != '1'
+        with:
+          repository: BISTU-Volleyball/originals
+          token: ${{ secrets.ORIGINALS_TOKEN }}
+          path: orig
+          fetch-depth: 1
+      - name: 搬原图、改地址
+        if: steps.key.outputs.skip != '1'
+        run: python site/tools/move_originals.py site orig
+      - name: 先提交原图仓库（地址先能打开，主站再改过去）
+        if: steps.key.outputs.skip != '1'
+        working-directory: orig
+        run: |
+          git config user.name "原图助手"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -q -m "从主站搬来原图"
+          for i in 1 2 3 4 5; do git pull -q --rebase && git push -q && break; sleep 5; done
+      - name: 再提交主站
+        id: site
+        if: steps.key.outputs.skip != '1'
+        working-directory: site
+        run: |
+          git config user.name "原图助手"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A assets/posts _posts _pending
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -q -m "原图搬到原图仓库"
+          for i in 1 2 3 4 5; do git pull -q --rebase && git push -q && break; sleep 5; done
+          echo "made=1" >> "$GITHUB_OUTPUT"
+      - name: 重新生成主站（机器人提交不会自动触发）
+        if: steps.site.outputs.made == '1'
+        run: |
+          curl -s -o /dev/null -w "%{http_code}\n" -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/pages/builds || true

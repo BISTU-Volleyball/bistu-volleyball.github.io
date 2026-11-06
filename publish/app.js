@@ -723,7 +723,7 @@ async function renderPending() {
         }
       } else delete q.album;
       delete q.album_name; delete q.album_cover;
-      await commitFiles(cfg(), [{ path: `_posts/${p.slug}.md`, text: buildPost(q) }, { path: p.path, del: true }, ...st.removed.map(f => ({ path: f.replace(/^\//, ''), del: true })), ...extra, ...coverFiles], `发布：${q.title}（审核：${me.name}）`);
+      await commitFiles(cfg(), [{ path: `_posts/${p.slug}.md`, text: buildPost(q) }, { path: p.path, del: true }, ...st.removed.filter(f => f.startsWith('/assets/')).map(f => ({ path: f.replace(/^\//, ''), del: true })), ...extra, ...coverFiles], `发布：${q.title}（审核：${me.name}）`);
       albumCache = null;
       return '已发布，约 1 分钟后出现在网站上';
     });
@@ -751,7 +751,7 @@ async function appendInto(p, st, text) {
   // 追加的文字里【图1】【视频1】要接着原来的编号
   const add = text.replace(/【图(\d+)】/g, (m, k) => `【图${+k + n}】`).replace(/【视频(\d+)】/g, (m, k) => `【视频${+k + nv}】`);
   merged.text = [t.text, add].filter(x => x && x.trim()).join('\n');
-  await commitFiles(cfg(), [{ path: tp, text: buildPost(merged) }, { path: p.path, del: true }, ...st.removed.map(f => ({ path: f.replace(/^\//, ''), del: true }))], `追加照片：${t.title}（审核：${me.name}）`);
+  await commitFiles(cfg(), [{ path: tp, text: buildPost(merged) }, { path: p.path, del: true }, ...st.removed.filter(f => f.startsWith('/assets/')).map(f => ({ path: f.replace(/^\//, ''), del: true }))], `追加照片：${t.title}（审核：${me.name}）`);
   pubCache = null;
   return `已并入「${t.title}」，约 1 分钟后网站更新`;
 }
