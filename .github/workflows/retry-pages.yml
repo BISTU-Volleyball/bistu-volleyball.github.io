@@ -1,0 +1,27 @@
+# 网站生成偶发失败（GitHub 那边的 "Page build failed"，重新生成一次就好）时自动重试
+# page_build：每次 Pages 生成结束都会触发；只在失败时动作。同一提交失败超过 3 次就不再重试，避免一直失败时无限重试
+name: 网站生成失败自动重试
+on: page_build
+permissions:
+  pages: write
+jobs:
+  retry:
+    if: github.event.build.status == 'errored'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 重新生成网站
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          COMMIT: ${{ github.event.build.commit }}
+        run: |
+          api() { curl -s -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" "$@"; }
+          fails=$(api "https://api.github.com/repos/$REPO/pages/builds?per_page=20" | python3 -c "import json,sys,os; print(sum(1 for b in json.load(sys.stdin) if b['commit']==os.environ['COMMIT'] and b['status']=='errored'))")
+          echo "这个提交已失败 $fails 次"
+          if [ "$fails" -gt 3 ]; then echo "失败太多次，不再重试，请人工检查"; exit 1; fi
+          sleep 20
+          latest=$(api "https://api.github.com/repos/$REPO/pages/builds/latest" | python3 -c "import json,sys; b=json.load(sys.stdin); print(b['status'], b['commit'])")
+          echo "当前最新一次生成：$latest"
+          case "$latest" in built*|building*|queued*) echo "已经有新的生成，不用重试"; exit 0;; esac
+          api -X POST "https://api.github.com/repos/$REPO/pages/builds" -o /dev/null -w "重新生成请求：%{http_code}\n"
