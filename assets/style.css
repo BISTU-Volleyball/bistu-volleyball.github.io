@@ -264,6 +264,9 @@ img, video { max-width: 100%; display: block; }
 .lb-on, .lb-on body { overflow: hidden; }
 .lb { position: fixed; inset: 0; z-index: 1000; background: rgba(6, 8, 16, .985); display: flex; align-items: center; justify-content: center; }
 .lb[hidden] { display: none; }
+/* 看图层里的手势归自己：浏览器不再把横向滑动当翻页，只保留双指缩放 */
+.lb, .lb * { touch-action: pinch-zoom; }
+.lb { overscroll-behavior: contain; -webkit-touch-callout: default; }
 .lb-stage { position: absolute; inset: 0 0 56px; display: flex; align-items: center; justify-content: center; }
 .lb-img { max-width: 100%; max-height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; }
 .lb-load { position: absolute; color: #fff; opacity: .7; font-size: 14px; }

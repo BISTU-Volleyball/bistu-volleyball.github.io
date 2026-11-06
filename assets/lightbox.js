@@ -75,11 +75,25 @@
     else if (e.key === 'ArrowRight') show(cur + 1);
   });
   // 手机左右滑动切换（双指缩放时不切换）
-  var sx = 0, sy = 0, multi = false;
-  box.addEventListener('touchstart', function (e) { multi = e.touches.length > 1; sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
-  box.addEventListener('touchend', function (e) {
-    if (multi || (window.visualViewport && visualViewport.scale > 1.05)) return;
-    var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) show(cur + (dx < 0 ? 1 : -1));
+  // 手机浏览器会把横向滑动当成自己的手势（翻页/切换网页），中途发 touchcancel 把事件拿走：
+  // 所以 touchmove 里横向为主时 preventDefault 不让浏览器接手，并记下最后位置，touchend / touchcancel 都按它判断
+  var sx = 0, sy = 0, lx = 0, ly = 0, multi = false, tracking = false;
+  box.addEventListener('touchstart', function (e) {
+    multi = e.touches.length > 1; tracking = !multi;
+    sx = lx = e.touches[0].clientX; sy = ly = e.touches[0].clientY;
   }, { passive: true });
+  box.addEventListener('touchmove', function (e) {
+    if (e.touches.length > 1) { multi = true; tracking = false; return; }
+    if (!tracking) return;
+    lx = e.touches[0].clientX; ly = e.touches[0].clientY;
+    if (Math.abs(lx - sx) > Math.abs(ly - sy)) e.preventDefault();
+  }, { passive: false });
+  function swipeEnd() {
+    if (!tracking || multi || (window.visualViewport && visualViewport.scale > 1.05)) { tracking = false; return; }
+    tracking = false;
+    var dx = lx - sx, dy = ly - sy;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) show(cur + (dx < 0 ? 1 : -1));
+  }
+  box.addEventListener('touchend', swipeEnd);
+  box.addEventListener('touchcancel', swipeEnd);
 })();
