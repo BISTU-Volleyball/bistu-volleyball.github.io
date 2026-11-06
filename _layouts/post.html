@@ -66,6 +66,7 @@ layout: default
     </div>{% endfor %}
   </div>{% endif %}
 </article>
+{% comment %}点照片在本页看大图（assets/lightbox.js），不新开网页{% endcomment %}{% assign nimgs = page.images | size %}{% if nimgs > 0 %}<script src="{{ '/assets/lightbox.js' | relative_url }}?v={{ site.time | date: '%s' }}" defer></script>{% endif %}
 {% if page.section == 'learn' %}<script>
 document.querySelectorAll('.wm-fs').forEach(function (b) {
   b.onclick = function () {
