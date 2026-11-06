@@ -7,7 +7,8 @@
     return img && a.children.length === 1 && /\.(jpe?g|png|webp|gif)(\?|$)/i.test(a.getAttribute('href'));
   });
   if (!links.length) return;
-  var items = links.map(function (a) { return { show: a.querySelector('img').currentSrc || a.querySelector('img').src, full: a.href }; });
+  // 网格里显示的是缩略图时，链接上的 data-show 是大图（网页显示版）
+  var items = links.map(function (a) { return { show: a.dataset.show ? new URL(a.dataset.show, location.href).href : (a.querySelector('img').currentSrc || a.querySelector('img').src), full: a.href }; });
 
   var box = document.createElement('div');
   box.className = 'lb';

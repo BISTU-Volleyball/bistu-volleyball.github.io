@@ -53,7 +53,8 @@ layout: default
   {% assign rest_vid = rest_vid | strip %}{% if rest_vid != '' %}<div class="videos">{{ rest_vid }}</div>{% endif %}
   {% comment %}旧格式：整篇一个视频号链接又有本站视频（现在改为每个视频各自的 v.channels）{% endcomment %}
   {% if page.channels and nv > 0 %}<a class="sph-note" href="{{ page.channels }}" target="_blank" rel="noopener"><span class="sph-note-ic">▶</span><span><b>网页播放的是压缩版，高清原版发布在协会视频号</b><small>点击在微信视频号观看高清版（电脑上会显示二维码，用微信扫一扫）</small></span><span class="sph-note-go">去看高清 ›</span></a>{% endif %}
-  {% capture rest_img %}{% for im in page.images %}{% assign key = ',' | append: forloop.index | append: ',' %}{% unless used_img contains key %}{% assign full = page.originals[forloop.index0] | default: im %}<a href="{{ full | relative_url }}" target="_blank"><img loading="lazy" src="{{ im | relative_url }}" alt=""></a>{% endunless %}{% endfor %}{% endcapture %}
+  {% comment %}文末照片网格用缩略图（快）；点开看大图时加载网页显示版（data-show），再点「查看原图」加载原图{% endcomment %}
+  {% capture rest_img %}{% for im in page.images %}{% assign key = ',' | append: forloop.index | append: ',' %}{% unless used_img contains key %}{% assign full = page.originals[forloop.index0] | default: im %}<a href="{{ full | relative_url }}" target="_blank" data-show="{{ im | relative_url }}"><img loading="lazy" {% include thumb-src.html src=im %} alt=""></a>{% endunless %}{% endfor %}{% endcapture %}
   {% assign rest_img = rest_img | strip %}{% if rest_img != '' %}<div class="photos">{{ rest_img }}</div>{% endif %}
   {% if page.attachments and page.attachments.size > 0 %}
   <div class="attach">
