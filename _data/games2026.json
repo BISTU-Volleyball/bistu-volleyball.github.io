@@ -558,24 +558,24 @@
    ]
   },
   {
-   "id": "final",
-   "stage": "final",
-   "label": "决赛",
-   "date": "2026-11-10",
-   "time": "11:50-12:30",
-   "court": "",
-   "a": "I#W",
-   "b": "J#W"
-  },
-  {
    "id": "third",
    "stage": "final",
    "label": "三四名",
    "date": "2026-11-10",
-   "time": "12:30-13:10",
+   "time": "11:50-12:30",
    "court": "",
    "a": "I#L",
    "b": "J#L"
+  },
+  {
+   "id": "final",
+   "stage": "final",
+   "label": "决赛",
+   "date": "2026-11-10",
+   "time": "12:30-13:10",
+   "court": "",
+   "a": "I#W",
+   "b": "J#W"
   }
  ]
 }
