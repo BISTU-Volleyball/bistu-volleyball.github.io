@@ -134,7 +134,8 @@
 
   function homeHTML(G, url) {
     // 比赛全部结束后，首页这一块换成冠亚季军领奖台
-    if (podium(G)) return podiumHTML(G, url);
+    // 「近期活动」上方已有「赛程与比分」「积分榜」按钮，领奖台下面就不再放链接
+    if (podium(G)) return podiumHTML(G, '');
     const today = bjToday(), days = [...new Set(G.matches.map(m => m.date))].sort();
     const d = days.find(x => x >= today) || days[days.length - 1];
     const ms = G.matches.filter(m => m.date === d);
