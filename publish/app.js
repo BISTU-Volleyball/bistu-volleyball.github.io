@@ -1256,11 +1256,14 @@ function renderSettings() {
     out.select();
     navigator.clipboard?.writeText(out.value).then(() => toast('已复制链接'), () => {});
   };
+  // 网站由「生成并发布网站」流程（.github/workflows/pages.yml）发布：看它最近一次运行的状态
   const loadBuild = async () => {
     try {
-      const b = await gh('/pages/builds/latest');
-      const st = { built: '✅ 正常', building: '⏳ 构建中', queued: '⏳ 排队中', errored: '❌ 失败' }[b.status] || b.status;
-      $('#bStatus').textContent = `${st}（${new Date(b.updated_at).toLocaleString('zh-CN')}）${b.error?.message ? '：' + b.error.message : ''}`;
+      const r = (await gh('/actions/workflows/pages.yml/runs?per_page=1')).workflow_runs[0];
+      if (!r) { $('#bStatus').textContent = '还没有发布记录'; return; }
+      const st = r.status !== 'completed' ? '⏳ 正在生成和发布（约 2~5 分钟）'
+        : { success: '✅ 正常', failure: '❌ 失败', cancelled: '⚪ 已取消' }[r.conclusion] || r.conclusion;
+      $('#bStatus').textContent = `${st}（${new Date(r.updated_at).toLocaleString('zh-CN')}）`;
     } catch (e) { $('#bStatus').textContent = '读取失败：' + explain(e); }
   };
   loadBuild();
@@ -1280,7 +1283,14 @@ function renderSettings() {
     } catch (e) { $('#capStatus').textContent = '读取失败：' + explain(e); }
   })();
   $('#bRebuild').onclick = async () => {
-    try { await gh('/pages/builds', { method: 'POST' }); toast('已开始重新构建'); setTimeout(loadBuild, 3000); }
+    // 重新发布 = 提交一个内容不变的空提交，推送会触发「生成并发布网站」流程（只需要钥匙的 Contents 权限）
+    try {
+      const ref = await gh('/git/ref/heads/main');
+      const head = await gh(`/git/commits/${ref.object.sha}`);
+      const c = await gh('/git/commits', { method: 'POST', body: JSON.stringify({ message: `重新发布网站（${me.name}）`, tree: head.tree.sha, parents: [ref.object.sha] }) });
+      await gh('/git/refs/heads/main', { method: 'PATCH', body: JSON.stringify({ sha: c.sha }) });
+      toast('已开始重新发布，约 2~5 分钟后生效'); setTimeout(loadBuild, 5000);
+    }
     catch (e) { toast('失败：' + explain(e), true); }
   };
 }

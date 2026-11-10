@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
-  pages: write
+  actions: write
 concurrency:
   group: originals
   cancel-in-progress: false
@@ -60,8 +60,9 @@ jobs:
           git commit -q -m "原图搬到原图仓库"
           for i in 1 2 3 4 5; do git pull -q --rebase && git push -q && break; sleep 5; done
           echo "made=1" >> "$GITHUB_OUTPUT"
-      - name: 重新生成主站（机器人提交不会自动触发）
+      - name: 发布主站（机器人提交不会自动触发发布）
         if: steps.site.outputs.made == '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          curl -s -o /dev/null -w "%{http_code}\n" -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/${{ github.repository }}/pages/builds || true
+          gh workflow run pages.yml --ref main -R ${{ github.repository }}
