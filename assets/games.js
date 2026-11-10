@@ -106,7 +106,35 @@
   }
 
   // 首页「今日比赛」：今天有比赛显示今天，否则显示下一个比赛日；全部结束后显示决赛
+  // 冠亚季军：决赛和三四名决赛都打完才有；返回 null 表示还没决出
+  function podium(G) {
+    const f = G.matches.find(m => m.id === 'final'), t = G.matches.find(m => m.id === 'third');
+    if (!f || !t) return null;
+    const rf = result(f), rt = result(t);
+    if (!rf.done || !rt.done) return null;
+    const w = (m, r, win) => team(G, (r.sa > r.sb) === win ? m.a : m.b);
+    return { gold: w(f, rf, true), silver: w(f, rf, false), bronze: w(t, rt, true), f, rf, t, rt };
+  }
+  function scoreLine(G, m, r) {
+    const A = team(G, m.a).name, B = team(G, m.b).name;
+    return `<b>${esc(stageName(m))}</b> ${esc(A)} <em>${r.sa} : ${r.sb}</em> ${esc(B)}${r.sets.length ? `<small>（${r.sets.map(x => x.join(':')).join('、')}）</small>` : ''}`;
+  }
+  // 领奖台：亚军—冠军—季军，冠军最高
+  function podiumHTML(G, url) {
+    const P = podium(G);
+    if (!P) return '';
+    const step = (cls, medal, label, t) => `<div class="pd-col pd-${cls}"><div class="pd-medal">${medal}</div><div class="pd-label">${label}</div><div class="pd-team">${esc(t.name)}</div><div class="pd-block"><span>${label === '冠军' ? 1 : label === '亚军' ? 2 : 3}</span></div></div>`;
+    return `<div class="podium">
+      <div class="pd-title">🏆 ${esc(G.short_title || ((String(G.title || '').match(/\d{4}年/) || [''])[0] + '教职工气排球团体赛'))} · 圆满落幕</div>
+      <div class="pd-stage">${step('silver', '🥈', '亚军', P.silver)}${step('gold', '🏆', '冠军', P.gold)}${step('bronze', '🥉', '季军', P.bronze)}</div>
+      <div class="pd-scores"><div>${scoreLine(G, P.f, P.rf)}</div><div>${scoreLine(G, P.t, P.rt)}</div></div>
+      ${url ? `<div class="pd-links"><a href="${url}#schedule">📅 完整赛程与比分</a><a href="${url}#standings">📊 小组积分榜</a><a href="${url}#bracket">🏆 淘汰赛对阵</a></div>` : ''}
+    </div>`;
+  }
+
   function homeHTML(G, url) {
+    // 比赛全部结束后，首页这一块换成冠亚季军领奖台
+    if (podium(G)) return podiumHTML(G, url);
     const today = bjToday(), days = [...new Set(G.matches.map(m => m.date))].sort();
     const d = days.find(x => x >= today) || days[days.length - 1];
     const ms = G.matches.filter(m => m.date === d);
@@ -114,7 +142,7 @@
       <div class="ghome-list">${ms.map(m => matchCard(G, m, today)).join('')}</div>`;
   }
 
-  g.GamesCore = { result, standings, team, stageName, dayLabel, bjToday, scheduleHTML, standingsHTML, bracketHTML, homeHTML };
+  g.GamesCore = { result, standings, team, stageName, dayLabel, bjToday, scheduleHTML, standingsHTML, bracketHTML, homeHTML, podium, podiumHTML };
 
   // 页面上有对应容器就渲染
   if (typeof document !== 'undefined' && g.GAMES) {
@@ -122,6 +150,7 @@
     put('g-schedule', () => scheduleHTML(G));
     put('g-standings', () => standingsHTML(G));
     put('g-bracket', () => bracketHTML(G));
+    put('g-podium', () => podiumHTML(G, ''));
     const home = document.getElementById('g-home');
     if (home) home.innerHTML = homeHTML(G, home.dataset.url);
   }
