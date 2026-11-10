@@ -1,27 +1,37 @@
 # 网站生成偶发失败（GitHub 那边的 "Page build failed"，重新生成一次就好）时自动重试
-# page_build：每次 Pages 生成结束都会触发；只在失败时动作。同一提交失败超过 3 次就不再重试，避免一直失败时无限重试
+# page_build：每次 Pages 生成结束都会触发；只在失败时动作。
+# 注意：本流程自己发起的重新生成失败后，GitHub 不会再触发新的流程（机器人触发的事件不再触发流程），
+# 所以在同一次运行里循环：等正在进行的生成结束 → 还是失败就再发起，最多 4 次，直到成功
 name: 网站生成失败自动重试
 on: page_build
 permissions:
   pages: write
+concurrency:
+  group: retry-pages
+  cancel-in-progress: false
 jobs:
   retry:
     if: github.event.build.status == 'errored'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     steps:
-      - name: 重新生成网站
+      - name: 重新生成网站（直到成功）
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          COMMIT: ${{ github.event.build.commit }}
         run: |
           api() { curl -s -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" "$@"; }
-          fails=$(api "https://api.github.com/repos/$REPO/pages/builds?per_page=20" | python3 -c "import json,sys,os; print(sum(1 for b in json.load(sys.stdin) if b['commit']==os.environ['COMMIT'] and b['status']=='errored'))")
-          echo "这个提交已失败 $fails 次"
-          if [ "$fails" -gt 3 ]; then echo "失败太多次，不再重试，请人工检查"; exit 1; fi
-          sleep 20
-          latest=$(api "https://api.github.com/repos/$REPO/pages/builds/latest" | python3 -c "import json,sys; b=json.load(sys.stdin); print(b['status'], b['commit'])")
-          echo "当前最新一次生成：$latest"
-          case "$latest" in built*|building*|queued*) echo "已经有新的生成，不用重试"; exit 0;; esac
-          api -X POST "https://api.github.com/repos/$REPO/pages/builds" -o /dev/null -w "重新生成请求：%{http_code}\n"
+          latest() { api "https://api.github.com/repos/$REPO/pages/builds/latest" | python3 -c "import json,sys; print(json.load(sys.stdin).get('status',''))"; }
+          # 等当前这次生成结束（最多约 4 分钟），输出最后状态
+          wait_done() { for i in $(seq 1 24); do s=$(latest); case "$s" in building|queued) sleep 10;; *) echo "$s"; return;; esac; done; echo "$s"; }
+          sleep 15
+          for attempt in 1 2 3 4; do
+            s=$(wait_done)
+            echo "第 $attempt 轮：最新一次生成状态 = $s"
+            if [ "$s" = "built" ]; then echo "网站已生成成功"; exit 0; fi
+            api -X POST "https://api.github.com/repos/$REPO/pages/builds" -o /dev/null -w "发起重新生成：%{http_code}\n"
+            sleep 20
+          done
+          s=$(wait_done)
+          echo "最后状态 = $s"
+          [ "$s" = "built" ] || { echo "连续失败，请人工在发布助手「设置」里点重新构建"; exit 1; }
