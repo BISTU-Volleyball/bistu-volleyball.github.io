@@ -74,7 +74,7 @@
   {
    "title": "协会联队 VS 体育部 · 气排球表演赛",
    "date": "11月16日（周一）中午",
-   "place": "沙河校区体育馆",
+   "place": "沙河体育馆下沉馆",
    "desc": "团体赛热度未减，协会联队将与体育部带来一场表演赛。欢迎全校师生到场观赛，为双方加油助威！",
    "poster": "/assets/img/poster-2026-11-16.jpg",
    "until": "2026-11-16"
@@ -87,6 +87,7 @@
   "url": "https://di-90.github.io/volleyball-vote/",
   "image": "/assets/img/banner.jpg",
   "button": "精彩视频评选",
-  "games": "/games/2026/"
+  "games": "/games/2026/",
+  "podium_only": true
  }
 }

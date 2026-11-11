@@ -49,6 +49,8 @@ home: true
   {% if nt and nt.show %}
   {% comment %}notice.games 填了赛程比分页地址（如 /games/2026/）时：多出「赛程」「积分榜」按钮，下面显示今日比赛（assets/games.js）{% endcomment %}
   {% if nt.games %}{% assign gurl = nt.games | relative_url %}
+  {% comment %}notice.podium_only=true：只显示领奖台（隐藏标题/图片/按钮卡片）{% endcomment %}
+  {% unless nt.podium_only %}
   <div class="h-event">
     {% if nt.image %}<a href="{{ gurl }}"><img {% include thumb-src.html src=nt.image %} alt=""></a>{% endif %}
     <div class="h-event-txt">
@@ -61,6 +63,7 @@ home: true
       </div>
     </div>
   </div>
+  {% endunless %}
   <div class="ghome" id="g-home" data-url="{{ gurl }}"></div>
   <script>window.GAMES = {{ site.data.games2026 | jsonify }};</script>
   <script src="{{ '/assets/games.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
