@@ -29,9 +29,24 @@ home: true
   {% for s in H.stats %}<div class="h-stat reveal" style="--d: {{ forloop.index0 }}"><em>{{ s.icon }}</em><b>{{ s.num }}</b><span>{{ s.label }}</span></div>{% endfor %}
 </section>
 
-{% assign nt = H.notice %}{% if nt and nt.show %}
+{% assign nt = H.notice %}{% assign today = site.time | date: '%Y-%m-%d' %}{% assign evs = '' | split: '' %}{% for e in H.events %}{% if e.until == nil or e.until >= today %}{% assign evs = evs | push: e %}{% endif %}{% endfor %}
+{% if nt and nt.show or evs.size > 0 %}
 <section class="h-block reveal">
   <div class="h-head"><span>EVENT</span><h2>近期活动</h2></div>
+  {% comment %}events：海报式预告 [{title, date, place, desc, poster, until}]，until（YYYY-MM-DD）当天过后自动不显示{% endcomment %}
+  {% for e in evs %}{% assign purl = e.poster | relative_url %}
+  <div class="h-poster">
+    <a class="h-poster-img" href="{{ purl }}" target="_blank"><img src="{{ purl }}" alt="{{ e.title }}海报"></a>
+    <div class="h-poster-txt">
+      <span class="h-poster-tag">活动预告</span>
+      <h3>{{ e.title }}</h3>
+      <ul>{% if e.date %}<li><em>🕛</em>{{ e.date }}</li>{% endif %}{% if e.place %}<li><em>📍</em>{{ e.place }}</li>{% endif %}</ul>
+      {% if e.desc %}<p>{{ e.desc }}</p>{% endif %}
+      <div class="h-event-btns"><a class="h-btn h-btn-orange" href="{{ purl }}" target="_blank">查看海报 →</a></div>
+    </div>
+  </div>
+  {% endfor %}
+  {% if nt and nt.show %}
   {% comment %}notice.games 填了赛程比分页地址（如 /games/2026/）时：多出「赛程」「积分榜」按钮，下面显示今日比赛（assets/games.js）{% endcomment %}
   {% if nt.games %}{% assign gurl = nt.games | relative_url %}
   <div class="h-event">
@@ -58,6 +73,7 @@ home: true
       <span class="h-btn h-btn-orange">{{ nt.button | default: '查看详情' }} →</span>
     </div>
   </a>
+  {% endif %}
   {% endif %}
 </section>
 {% endif %}

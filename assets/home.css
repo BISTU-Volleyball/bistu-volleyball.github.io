@@ -132,3 +132,14 @@ body { overflow-x: hidden; }
 .ghome-head b { font-size: 17px; }
 .ghome-head span { color: var(--ink-2); font-size: 14px; }
 .ghome-head a { margin-left: auto; font-size: 14px; font-weight: 600; }
+/* 近期活动·海报预告（home.json events） */
+.h-poster { display: grid; grid-template-columns: minmax(0, 360px) 1fr; gap: 0; background: #fff; border-radius: 20px; overflow: hidden; box-shadow: var(--shadow); color: var(--ink); margin-bottom: 20px; }
+.h-poster-img { display: block; background: #003a73; }
+.h-poster-img img { display: block; width: 100%; height: auto; }
+.h-poster-txt { padding: 32px; display: flex; flex-direction: column; gap: 14px; justify-content: center; background: linear-gradient(135deg, #fff 0%, #fff6ec 100%); }
+.h-poster-tag { align-self: flex-start; background: #ef7e00; color: #fff; font-size: 13px; letter-spacing: 2px; padding: 3px 10px; border-radius: 4px; }
+.h-poster h3 { margin: 0; font-size: 26px; line-height: 1.4; }
+.h-poster ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 17px; font-weight: 600; color: #003a73; }
+.h-poster li em { font-style: normal; margin-right: 8px; }
+.h-poster p { margin: 0; color: var(--ink-2); line-height: 1.8; }
+@media (max-width: 760px) { .h-poster { grid-template-columns: 1fr; } .h-poster-txt { padding: 22px; } }
