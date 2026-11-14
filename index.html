@@ -33,7 +33,7 @@ home: true
 {% if nt and nt.show or evs.size > 0 %}
 <section class="h-block reveal">
   <div class="h-head"><span>EVENT</span><h2>近期活动</h2></div>
-  {% comment %}events：海报式预告 [{title, date, place, desc, poster, until}]，until（YYYY-MM-DD）当天过后自动不显示{% endcomment %}
+  {% comment %}events：海报式预告 [{title, date, place, desc, poster, until, vote_url, vote_text}]，until（YYYY-MM-DD）当天过后自动不显示{% endcomment %}
   {% for e in evs %}{% assign purl = e.poster | relative_url %}
   <div class="h-poster">
     <a class="h-poster-img" href="{{ purl }}" target="_blank"><img src="{{ purl }}" alt="{{ e.title }}海报"></a>
@@ -42,7 +42,8 @@ home: true
       <h3>{{ e.title }}</h3>
       <ul>{% if e.date %}<li><em>🕛</em>{{ e.date }}</li>{% endif %}{% if e.place %}<li><em>📍</em>{{ e.place }}</li>{% endif %}</ul>
       {% if e.desc %}<p>{{ e.desc }}</p>{% endif %}
-      <div class="h-event-btns"><a class="h-btn h-btn-orange" href="{{ purl }}" target="_blank">查看海报 →</a></div>
+      {% comment %}vote_url：精彩视频投票入口（填了就多一个投票按钮，排在最前）{% endcomment %}
+      <div class="h-event-btns">{% if e.vote_url %}<a class="h-btn h-btn-orange" href="{{ e.vote_url }}">🗳️ {{ e.vote_text | default: '精彩视频投票' }} →</a><a class="h-btn h-btn-line" href="{{ purl }}" target="_blank">查看海报</a>{% else %}<a class="h-btn h-btn-orange" href="{{ purl }}" target="_blank">查看海报 →</a>{% endif %}</div>
     </div>
   </div>
   {% endfor %}
