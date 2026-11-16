@@ -1078,7 +1078,7 @@ async function renderHome() {
       slogan: val(v, '#hSlogan'),
       heroes: st.heroes,
       stats: [...v.querySelectorAll('.hs-stat')].map(r => ({ icon: val(r, '.sIcon'), num: val(r, '.sNum'), label: val(r, '.sLabel') })).filter(s => s.num || s.label),
-      notice: { show: $('#nShow').checked, title: val(v, '#nTitle'), desc: val(v, '#nDesc'), url: val(v, '#nUrl'), image: st.noticeImg, button: val(v, '#nBtn'), games: val(v, '#nGames') || undefined },
+      notice: { ...nt, show: $('#nShow').checked, title: val(v, '#nTitle'), desc: val(v, '#nDesc'), url: val(v, '#nUrl'), image: st.noticeImg, button: val(v, '#nBtn'), games: val(v, '#nGames') || undefined },
       wall: st.wall,
     };
     if (data.notice.show && !data.notice.title) throw new Error('近期活动要在首页显示，请填写标题');
