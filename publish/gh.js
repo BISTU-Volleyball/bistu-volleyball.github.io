@@ -51,7 +51,13 @@ export async function commitFiles(cfg, files, message, onStep) {
     else if (f.sha) items.push({ path: f.path, mode: '100644', type: 'blob', sha: f.sha }); // 仓库里已有的内容（恢复删除时用）
     else {
       onStep && onStep(`上传文件 ${bins.indexOf(f) + 1}/${bins.length}`);
-      const { sha } = await gh('/git/blobs', { method: 'POST', body: JSON.stringify({ content: await toBase64(f.blob), encoding: 'base64' }) });
+      let sha;
+      try { ({ sha } = await gh('/git/blobs', { method: 'POST', body: JSON.stringify({ content: await toBase64(f.blob), encoding: 'base64' }) })); }
+      catch (e) {
+        // 报出是哪个文件、处理后多大，方便排查（例如「文件太大」）
+        e.message = `「${f.name || f.path.split('/').pop()}」（${(f.blob.size / 1048576).toFixed(1)}MB）${e.message}`;
+        throw e;
+      }
       items.push({ path: f.path, mode: '100644', type: 'blob', sha });
     }
   }

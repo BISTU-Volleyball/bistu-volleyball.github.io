@@ -439,11 +439,11 @@ async function submit() {
       if (keepOrig) {
         const { blob, ratio, original, ext } = await keepOriginal(f);
         const opath = `${dir}/p${i + 1}-orig.${ext}`;
-        files.push({ path, blob }, { path: opath, blob: original });
+        files.push({ path, blob, name: f.name + '（网页显示版）' }, { path: opath, blob: original, name: f.name + '（原图）' });
         images.push('/' + path); originals.push('/' + opath); ratios.push(ratio);
       } else {
         const { blob, ratio } = await shrinkImage(f);
-        files.push({ path, blob });
+        files.push({ path, blob, name: f.name });
         images.push('/' + path); ratios.push(ratio);
       }
     }
@@ -467,7 +467,7 @@ async function submit() {
         const lim = MAX_MB[quality];
         if (blob.size > lim * 1048576) throw new Error(`「${f.name}」处理后仍超过 ${lim}MB，请剪短一些（${quality === 'high' ? '高清视频最长约 3 分 50 秒，更长的请发视频号后在视频区贴链接' : '建议 1 分钟以内'}）`);
         const path = `${dir}/v${i + 1}.mp4`;
-        files.push({ path, blob });
+        files.push({ path, blob, name: f.name });
         const v = { src: '/' + path };
         if (duration) v.duration = duration;
         if (vsph[i]) v.channels = normSph(vsph[i]);
@@ -1078,7 +1078,7 @@ async function renderHome() {
       slogan: val(v, '#hSlogan'),
       heroes: st.heroes,
       stats: [...v.querySelectorAll('.hs-stat')].map(r => ({ icon: val(r, '.sIcon'), num: val(r, '.sNum'), label: val(r, '.sLabel') })).filter(s => s.num || s.label),
-      notice: { ...nt, show: $('#nShow').checked, title: val(v, '#nTitle'), desc: val(v, '#nDesc'), url: val(v, '#nUrl'), image: st.noticeImg, button: val(v, '#nBtn'), games: val(v, '#nGames') || undefined },
+      notice: { show: $('#nShow').checked, title: val(v, '#nTitle'), desc: val(v, '#nDesc'), url: val(v, '#nUrl'), image: st.noticeImg, button: val(v, '#nBtn'), games: val(v, '#nGames') || undefined },
       wall: st.wall,
     };
     if (data.notice.show && !data.notice.title) throw new Error('近期活动要在首页显示，请填写标题');
