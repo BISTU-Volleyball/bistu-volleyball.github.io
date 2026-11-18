@@ -143,3 +143,15 @@ body { overflow-x: hidden; }
 .h-poster li em { font-style: normal; margin-right: 8px; }
 .h-poster p { margin: 0; color: var(--ink-2); line-height: 1.8; }
 @media (max-width: 760px) { .h-poster { grid-template-columns: 1fr; } .h-poster-txt { padding: 22px; } }
+/* 近期活动 · 比赛结果卡片（events[].result） */
+.h-result { grid-template-columns: minmax(0, 1.15fr) 1fr; }
+.h-result .h-poster-img img { height: 100%; object-fit: cover; }
+.h-result .h-poster-txt { background: linear-gradient(135deg, #fff 0%, #eef4ff 100%); }
+.h-result-tag { background: #0054a6; }
+.h-score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; padding: 14px 12px; border-radius: 14px; background: linear-gradient(135deg, #0b2a66, #1f5fd6); color: #fff; box-shadow: 0 8px 22px rgba(20, 60, 160, .25); }
+.h-score-team { font-size: 18px; font-weight: 700; text-align: center; opacity: .85; }
+.h-score-team.win { opacity: 1; color: #ffe08a; }
+.h-score-team i { font-style: normal; margin-right: 4px; }
+.h-score-num { display: flex; align-items: center; gap: 6px; font-size: 40px; font-weight: 900; line-height: 1; }
+.h-score-num em { font-style: normal; opacity: .7; font-size: 30px; }
+@media (max-width: 760px) { .h-result { grid-template-columns: 1fr; } .h-score-num { font-size: 34px; } .h-score-team { font-size: 16px; } }

@@ -72,14 +72,22 @@
  ],
  "events": [
   {
-   "title": "协会联队 VS 体育部 · 气排球表演赛",
-   "date": "11月16日（周一）中午12:00",
+   "title": "排协联队 VS 体育部 · 气排球表演赛",
+   "date": "11月16日（周一）中午",
    "place": "沙河体育馆下沉馆",
-   "desc": "团体赛热度未减，协会联队将与体育部带来一场表演赛。欢迎全校师生到场观赛，为双方加油助威！",
+   "desc": "团体赛冠军体育部与排协联队在沙河体育馆下沉馆上演了一场精彩的气排球表演赛，体育部以 2 : 1 获胜。感谢双方队员的精彩表现和现场观众的热情助威！",
    "poster": "/assets/img/poster-2026-11-16.jpg",
-   "until": "2026-11-20",
-   "vote_url": "https://di-90.github.io/volleyball-vote/",
-   "vote_text": "精彩视频投票"
+   "until": "2026-11-30",
+   "vote_url": "https://di-90.github.io/volleyball-vote/#/p/88d5db60b551",
+   "vote_text": "表演赛精彩视频投票",
+   "result": {
+    "a": "体育部",
+    "sa": 2,
+    "b": "排协联队",
+    "sb": 1
+   },
+   "photo": "/assets/posts/2026-11-16-7c5aee/p1.jpg",
+   "photos_url": "/gallery/20261116-9908/"
   }
  ],
  "notice": {

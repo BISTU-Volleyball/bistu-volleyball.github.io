@@ -35,6 +35,24 @@ home: true
   <div class="h-head"><span>EVENT</span><h2>近期活动</h2></div>
   {% comment %}events：海报式预告 [{title, date, place, desc, poster, until, vote_url, vote_text}]，until（YYYY-MM-DD）当天过后自动不显示{% endcomment %}
   {% for e in evs %}{% assign purl = e.poster | relative_url %}
+  {% comment %}赛后：填了 result {a, sa, b, sb} 就显示成「比赛结果」卡片（大比分 + 现场照片 photo + 相册 photos_url）{% endcomment %}
+  {% if e.result %}{% assign r = e.result %}{% assign pic = e.photo | default: e.poster %}{% assign gurl2 = e.photos_url | default: e.poster | relative_url %}
+  <div class="h-poster h-result">
+    <a class="h-poster-img" href="{{ gurl2 }}"><img {% include thumb-src.html src=pic %} alt="{{ e.title }}现场照片"></a>
+    <div class="h-poster-txt">
+      <span class="h-poster-tag h-result-tag">比赛结果</span>
+      <h3>{{ e.title }}</h3>
+      <div class="h-score">
+        <div class="h-score-team{% if r.sa > r.sb %} win{% endif %}">{% if r.sa > r.sb %}<i>🏆</i>{% endif %}{{ r.a }}</div>
+        <div class="h-score-num"><b>{{ r.sa }}</b><em>:</em><b>{{ r.sb }}</b></div>
+        <div class="h-score-team{% if r.sb > r.sa %} win{% endif %}">{% if r.sb > r.sa %}<i>🏆</i>{% endif %}{{ r.b }}</div>
+      </div>
+      <ul>{% if e.date %}<li><em>🕛</em>{{ e.date }}</li>{% endif %}{% if e.place %}<li><em>📍</em>{{ e.place }}</li>{% endif %}</ul>
+      {% if e.desc %}<p>{{ e.desc }}</p>{% endif %}
+      <div class="h-event-btns">{% if e.vote_url %}<a class="h-btn h-btn-orange" href="{{ e.vote_url }}">🗳️ {{ e.vote_text | default: '精彩视频投票' }} →</a>{% endif %}{% if e.photos_url %}<a class="h-btn h-btn-line" href="{{ e.photos_url | relative_url }}">📷 现场照片</a>{% endif %}{% if e.poster %}<a class="h-btn h-btn-line" href="{{ purl }}" target="_blank">查看海报</a>{% endif %}</div>
+    </div>
+  </div>
+  {% else %}
   <div class="h-poster">
     <a class="h-poster-img" href="{{ purl }}" target="_blank"><img src="{{ purl }}" alt="{{ e.title }}海报"></a>
     <div class="h-poster-txt">
@@ -46,6 +64,7 @@ home: true
       <div class="h-event-btns">{% if e.vote_url %}<a class="h-btn h-btn-orange" href="{{ e.vote_url }}">🗳️ {{ e.vote_text | default: '精彩视频投票' }} →</a><a class="h-btn h-btn-line" href="{{ purl }}" target="_blank">查看海报</a>{% else %}<a class="h-btn h-btn-orange" href="{{ purl }}" target="_blank">查看海报 →</a>{% endif %}</div>
     </div>
   </div>
+  {% endif %}
   {% endfor %}
   {% if nt and nt.show %}
   {% comment %}notice.games 填了赛程比分页地址（如 /games/2026/）时：多出「赛程」「积分榜」按钮，下面显示今日比赛（assets/games.js）{% endcomment %}
